@@ -3,6 +3,7 @@ package com.pturpin.quickcheck.test;
 import com.pturpin.quickcheck.generator.Generator;
 import com.pturpin.quickcheck.generator.ReflectiveGenerators;
 import com.pturpin.quickcheck.registry.Registry;
+import com.sun.istack.internal.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -21,15 +22,23 @@ public final class TestRunners {
 
   private TestRunners() { /* Factory class */ }
 
-  public static TestRunner randomRunner(Method method, Registry registry, long nbRun, Supplier<Random> random) {
+  public static TestRunner randomRunner(Method method, @Nullable Object instance, Registry registry, long nbRun, Supplier<Random> random) {
     Optional<Generator<Object[]>> optGenerator = ReflectiveGenerators.with(registry).parametersGen(method);
     return optGenerator
-        .map(generator -> new RandomTestRunner(methodRunner(method), nbRun, optGenerator.get(), random))
+        .map(parametersGen -> randomRunner(method, instance, parametersGen, nbRun, random))
         .orElseThrow(UnsupportedOperationException::new);
   }
 
-  public static Function<Object[], TestRunner> methodRunner(Method method) {
-    checkArgument(Modifier.isStatic(method.getModifiers()),
+  public static TestRunner randomRunner(Method method, @Nullable Object instance, Generator<Object[]> parametersGen, long nbRun, Supplier<Random> random) {
+    return new RandomTestRunner(methodRunner(method, instance), nbRun, parametersGen, random);
+  }
+
+  public static Function<Object[], TestRunner> statisMethodRunner(Method method) {
+    return methodRunner(method, null);
+  }
+
+  public static Function<Object[], TestRunner> methodRunner(Method method, @Nullable Object instance) {
+    checkArgument(instance != null ||  Modifier.isStatic(method.getModifiers()),
         "Impossible to invoke a non-static method without instance : %s", method);
 
     Class<?> returnType = method.getReturnType();
@@ -37,7 +46,7 @@ public final class TestRunners {
 
     return arguments -> () -> {
       try {
-        Object result = method.invoke(null, arguments);
+        Object result = method.invoke(instance, arguments);
         if (useReturn) {
           return (TestResult) result;
         }
