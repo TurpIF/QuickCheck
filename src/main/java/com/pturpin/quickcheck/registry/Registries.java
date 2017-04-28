@@ -19,23 +19,23 @@ public final class Registries {
 
   private Registries() { /* Helper class */ }
 
-  private static RegistryBuilder builder() {
+  public static RegistryBuilder builder() {
     return new RegistryBuilder();
   }
 
-  private static Registry forMap(Map<TypeIdentifier<?>, Generator<?>> map) {
+  public static Registry forMap(Map<TypeIdentifier<?>, Generator<?>> map) {
     return new MapRegistry(ImmutableMap.copyOf(map));
   }
 
-  private static Registry empty() {
+  public static Registry empty() {
     return EmptyRegistry.EMPTY_INSTANCE;
   }
 
-  private static Registry alternatives(Iterable<Registry> registries) {
+  public static Registry alternatives(Iterable<Registry> registries) {
     return new AlternativeRegistry(ImmutableList.copyOf(registries));
   }
 
-  private static Registry alternatives(Registry... registries) {
+  public static Registry alternatives(Registry... registries) {
     return new AlternativeRegistry(ImmutableList.copyOf(registries));
   }
 
@@ -87,12 +87,12 @@ public final class Registries {
       this.builder = ImmutableMap.builder();
     }
 
-    private <T> RegistryBuilder put(TypeIdentifier<T> identifier, Generator<T> generator) {
+    public <T> RegistryBuilder put(TypeIdentifier<T> identifier, Generator<T> generator) {
       builder.put(identifier, generator);
       return this;
     }
 
-    private Registry build() {
+    public Registry build() {
       return new MapRegistry(builder.build());
     }
   }
