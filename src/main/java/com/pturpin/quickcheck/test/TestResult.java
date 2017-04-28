@@ -52,4 +52,12 @@ public final class TestResult {
     FAILURE,
     SKIPPED
   }
+
+  public static TestResult guard(boolean guard, Runnable runnable) {
+    if (guard) {
+      return TestResult.skipped();
+    }
+    runnable.run();
+    return TestResult.ok();
+  }
 }
