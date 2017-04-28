@@ -7,5 +7,5 @@ import java.util.Optional;
 
 @FunctionalInterface
 public interface Registry {
-    <T> Optional<Generator<T>> lookup(TypeIdentifier<T> identifier);
+  <T> Optional<Generator<T>> lookup(TypeIdentifier<T> identifier);
 }

@@ -4,5 +4,5 @@ import java.util.Random;
 
 @FunctionalInterface
 public interface Generator<T> {
-    T get(Random re);
+  T get(Random re);
 }
