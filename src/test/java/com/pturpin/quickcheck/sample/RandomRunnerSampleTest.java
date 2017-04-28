@@ -32,7 +32,7 @@ public class RandomRunnerSampleTest {
 
   @Test
   public TestResult toStringThenParseShouldBeIdentity(Double value) {
-    return guard(value == null, () -> {
+    return guard(value != null, () -> {
       double parsed = Double.parseDouble(value.toString());
       Assert.assertEquals(value, parsed, 0.d);
     });

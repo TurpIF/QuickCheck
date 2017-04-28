@@ -54,7 +54,7 @@ public final class TestResult {
   }
 
   public static TestResult guard(boolean guard, Runnable runnable) {
-    if (guard) {
+    if (!guard) {
       return TestResult.skipped();
     }
     runnable.run();
