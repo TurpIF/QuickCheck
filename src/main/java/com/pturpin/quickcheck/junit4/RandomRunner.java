@@ -1,11 +1,7 @@
 package com.pturpin.quickcheck.junit4;
 
 import com.pturpin.quickcheck.generator.Generator;
-import com.pturpin.quickcheck.generator.Generators;
-import com.pturpin.quickcheck.generator.Numbers;
 import com.pturpin.quickcheck.generator.ReflectiveGenerators;
-import com.pturpin.quickcheck.identifier.ClassIdentifier;
-import com.pturpin.quickcheck.registry.Registries;
 import com.pturpin.quickcheck.registry.Registry;
 import com.pturpin.quickcheck.test.TestResult;
 import com.pturpin.quickcheck.test.TestRunner;
@@ -33,6 +29,7 @@ import java.util.function.Supplier;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.pturpin.quickcheck.generator.Numbers.doubleGen;
 
 /**
  * Created by turpif on 28/04/17.
@@ -186,20 +183,6 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     @Override
     public Random create() {
       return new Random(0L);
-    }
-  }
-
-  private static final class DefaultRegistryFactory implements RegistryFactory {
-
-    public DefaultRegistryFactory() {
-      // nothing
-    }
-
-    @Override
-    public Registry create() {
-      return Registries.builder()
-          .put(new ClassIdentifier<>(double.class), Numbers.doubleGen())
-          .build();
     }
   }
 
