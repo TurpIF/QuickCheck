@@ -3,7 +3,6 @@ package com.pturpin.quickcheck.test;
 import com.pturpin.quickcheck.generator.Generator;
 import com.pturpin.quickcheck.generator.ReflectiveGenerators;
 import com.pturpin.quickcheck.registry.Registry;
-import com.sun.istack.internal.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,22 +21,22 @@ public final class TestRunners {
 
   private TestRunners() { /* Factory class */ }
 
-  public static TestRunner randomRunner(Method method, @Nullable Object instance, Registry registry, long nbRun, Supplier<Random> random) {
+  public static TestRunner randomRunner(Method method, Object instance, Registry registry, long nbRun, Supplier<Random> random) {
     Optional<Generator<Object[]>> optGenerator = ReflectiveGenerators.with(registry).parametersGen(method);
     return optGenerator
         .map(parametersGen -> randomRunner(method, instance, parametersGen, nbRun, random))
         .orElseThrow(UnsupportedOperationException::new);
   }
 
-  public static TestRunner randomRunner(Method method, @Nullable Object instance, Generator<Object[]> parametersGen, long nbRun, Supplier<Random> random) {
+  public static TestRunner randomRunner(Method method, Object instance, Generator<Object[]> parametersGen, long nbRun, Supplier<Random> random) {
     return new RandomTestRunner(methodRunner(method, instance), nbRun, parametersGen, random);
   }
 
-  public static Function<Object[], TestRunner> statisMethodRunner(Method method) {
+  public static Function<Object[], TestRunner> staticMethodRunner(Method method) {
     return methodRunner(method, null);
   }
 
-  public static Function<Object[], TestRunner> methodRunner(Method method, @Nullable Object instance) {
+  public static Function<Object[], TestRunner> methodRunner(Method method, Object instance) {
     checkArgument(instance != null ||  Modifier.isStatic(method.getModifiers()),
         "Impossible to invoke a non-static method without instance : %s", method);
 
