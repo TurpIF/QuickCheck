@@ -84,7 +84,7 @@ public final class ReflectiveGenerators {
       checkState(isDouble(parameter));
       double[] values = ((Doubles.Exclude) annot).value();
       return Optional.of(gen -> filter(gen, v -> Arrays.stream(values)
-          .noneMatch(value -> !v.equals(value))));
+          .noneMatch(v::equals)));
     } else if (annot instanceof Doubles.Filter) {
       checkState(isDouble(parameter));
       Class<? extends DoublePredicate> klass = ((Doubles.Filter) annot).value();
