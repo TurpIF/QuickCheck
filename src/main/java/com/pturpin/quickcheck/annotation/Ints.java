@@ -32,9 +32,11 @@ public final class Ints {
 
   @Target(ElementType.PARAMETER)
   @Retention(RetentionPolicy.RUNTIME)
-  public @interface OpenRange {
+  public @interface Range {
     int min() default Integer.MIN_VALUE;
     int max() default Integer.MAX_VALUE;
+    boolean minIsOpen() default false;
+    boolean maxIsOpen() default false;
   }
 
   @Target(ElementType.PARAMETER)

@@ -24,9 +24,9 @@ public class RandomRunnerSampleTest {
   }
 
   @Test
-  public TestResult ceilValueShouldBeGreaterOrEqThanValueExceptNaN(@Doubles.Exclude({Double.NaN}) double value) {
+  public TestResult ceilValueShouldBeGreaterOrEqThanValueExceptNaN(@Doubles.Exclude({Double.NaN}) @Doubles.Extra double value) {
     if (Double.isNaN(value)) {
-      return TestResult.skipped();
+      return TestResult.failure(new UnsupportedOperationException("NaN was not excluded"));
     }
     Assert.assertTrue(Math.ceil(value) >= value);
     return TestResult.ok();

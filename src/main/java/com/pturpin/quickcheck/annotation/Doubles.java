@@ -43,9 +43,11 @@ public final class Doubles {
 
   @Target(ElementType.PARAMETER)
   @Retention(RetentionPolicy.RUNTIME)
-  public @interface OpenRange {
+  public @interface Range {
     double min() default Double.POSITIVE_INFINITY;
     double max() default Double.NEGATIVE_INFINITY;
+    boolean minIsOpen() default false;
+    boolean maxIsOpen() default false;
   }
 
   @Target(ElementType.PARAMETER)

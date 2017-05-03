@@ -32,9 +32,11 @@ public final class Longs {
 
   @Target(ElementType.PARAMETER)
   @Retention(RetentionPolicy.RUNTIME)
-  public @interface OpenRange {
+  public @interface Range {
     long min() default Long.MIN_VALUE;
     long max() default Long.MAX_VALUE;
+    boolean minIsOpen() default false;
+    boolean maxIsOpen() default false;
   }
 
   @Target(ElementType.PARAMETER)
