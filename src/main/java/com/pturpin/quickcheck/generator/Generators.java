@@ -4,15 +4,24 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import java.util.Collection;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class Generators {
+public final class Generators {
+
+  private static final int MAX_FILTER_LOOP = 1000;
+
+  private Generators() {
+    /* nothing */
+  }
 
   public static <T> Generator<T> constGen(T value) {
     return re -> value;
+  }
+
+  public static Generator<Boolean> coin(double trueRate) {
+    return re -> re.nextDouble() <= trueRate;
   }
 
   public static <T> Generator<T> oneOf(Collection<? extends T> objects) {
@@ -47,11 +56,65 @@ public class Generators {
   public static <T> Generator<T> filter(Generator<? extends T> generator, Predicate<T> predicate) {
     return re -> {
       T value;
+      int nbLoop = 0;
       do {
         value = generator.get(re);
+        nbLoop++;
+        if (nbLoop > MAX_FILTER_LOOP) {
+          throw reachMaxFilterException();
+        }
+      } while (!predicate.test(value));
+      return value;
+    };
+  }
+
+  public static Generator<Double> filter(Generator<Double> generator, DoublePredicate predicate) {
+    return re -> {
+      double value;
+      int nbLoop = 0;
+      do {
+        value = generator.get(re);
+        nbLoop++;
+        if (nbLoop > MAX_FILTER_LOOP) {
+          throw reachMaxFilterException();
+        }
       } while (!predicate.test(value)); // FIXME handle infinite loop
       return value;
     };
+  }
+
+  public static Generator<Long> filter(Generator<Long> generator, LongPredicate predicate) {
+    return re -> {
+      long value;
+      int nbLoop = 0;
+      do {
+        value = generator.get(re);
+        nbLoop++;
+        if (nbLoop > MAX_FILTER_LOOP) {
+          throw reachMaxFilterException();
+        }
+      } while (!predicate.test(value));
+      return value;
+    };
+  }
+
+  public static Generator<Integer> filter(Generator<Integer> generator, IntPredicate predicate) {
+    return re -> {
+      int value;
+      int nbLoop = 0;
+      do {
+        value = generator.get(re);
+        nbLoop++;
+        if (nbLoop > MAX_FILTER_LOOP) {
+          throw reachMaxFilterException();
+        }
+      } while (!predicate.test(value));
+      return value;
+    };
+  }
+
+  private static RuntimeException reachMaxFilterException() {
+    return new RuntimeException("Generate " + MAX_FILTER_LOOP + " values but none match given predicate");
   }
 
   public static <T, R> Generator<R> map(Generator<? extends T> generator, Function<T, R> mapper) {
