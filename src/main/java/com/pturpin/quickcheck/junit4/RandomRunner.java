@@ -1,5 +1,6 @@
 package com.pturpin.quickcheck.junit4;
 
+import com.pturpin.quickcheck.base.Reflections;
 import com.pturpin.quickcheck.generator.Generator;
 import com.pturpin.quickcheck.generator.ReflectiveGenerators;
 import com.pturpin.quickcheck.registry.Registry;
@@ -16,10 +17,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,7 +27,6 @@ import java.util.function.Supplier;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.pturpin.quickcheck.generator.Numbers.doubleGen;
 
 /**
  * Created by turpif on 28/04/17.
@@ -86,6 +83,14 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     validateGeneratorErrors();
   }
 
+  private static <T> T newFactory(Class<T> klass) throws InitializationError {
+    try {
+      return Reflections.newFactory(klass);
+    } catch (ReflectiveOperationException e) {
+      throw new InitializationError(e);
+    }
+  }
+
   private void validateGeneratorErrors() throws InitializationError{
     List<Throwable> errors = new ArrayList<>();
     getTestClass().getAnnotatedMethods(Test.class)
@@ -101,25 +106,6 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
         .filter(parameter -> !generators.parameterGen(parameter).isPresent())
         .forEach(parameter -> errors.add(new Exception(
             "No registered generator for parameter " + parameter + " in " + method)));
-  }
-
-  private static <T> T newFactory(Class<T> klass) throws InitializationError {
-    Constructor<T> constructor;
-    try {
-      constructor = klass.getConstructor();
-    } catch (NoSuchMethodException e) {
-      throw new InitializationError(e);
-    }
-
-    if (!Modifier.isPublic(constructor.getModifiers())) {
-      throw new InitializationError(klass + " factory constructor should be public");
-    }
-
-    try {
-      return constructor.newInstance();
-    } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-      throw new InitializationError(e);
-    }
   }
 
   @Override
