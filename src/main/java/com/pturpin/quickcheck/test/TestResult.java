@@ -53,7 +53,7 @@ public final class TestResult {
     SKIPPED
   }
 
-  public static TestResult guard(boolean guard, Runnable runnable) {
+  public static TestResult when(boolean guard, Runnable runnable) {
     if (!guard) {
       return TestResult.skipped();
     }

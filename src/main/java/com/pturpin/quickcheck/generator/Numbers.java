@@ -25,15 +25,6 @@ public class Numbers {
     return re -> re.nextLong() % (max - min) + min;
   }
 
-  public static Generator<Float> floatGen() {
-    return floatGen(-Float.MAX_VALUE, Float.MAX_VALUE);
-  }
-
-  public static Generator<Float> floatGen(float min, float max) {
-    checkArgument(max > min);
-    return re -> re.nextFloat() * (max - min) + min; // FIXME handle overflow
-  }
-
   public static Generator<Double> doubleGen() {
     return doubleGen(-Double.MAX_VALUE, Double.MAX_VALUE);
   }
