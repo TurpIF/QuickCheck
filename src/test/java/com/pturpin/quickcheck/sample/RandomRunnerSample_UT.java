@@ -14,7 +14,7 @@ import static com.pturpin.quickcheck.test.TestResult.when;
  * Created by turpif on 28/04/17.
  */
 @RunWith(RandomRunner.class)
-public class RandomRunnerSampleTest {
+public class RandomRunnerSample_UT {
 
   @Test
   public void absoluteValueShouldBePositiveExceptNaN(double value) {
