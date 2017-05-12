@@ -26,37 +26,37 @@ public class Numbers_UT {
 
   @Test
   public void integerGenShouldNotGenerateNull() {
-    checkNotNull(integerGens());
+    assertNotNull(integerGens());
   }
 
   @Test
   public void longGenShouldNotGenerateNull() {
-    checkNotNull(longGens());
+    assertNotNull(longGens());
   }
 
   @Test
   public void doubleGenShouldNotGenerateNull() {
-    checkNotNull(doubleGens());
+    assertNotNull(doubleGens());
   }
 
   @Test
   public void specialDoubleGenShouldNotGenerateNull() {
-    checkNotNull(Numbers.specialDouble());
+    assertNotNull(Numbers.specialDouble());
   }
 
   @Test
   public void bigIntegerGenShouldNotGenerateNull() {
-    checkNotNull(bigIntegerGens());
+    assertNotNull(bigIntegerGens());
   }
 
   @Test
   public void bigDecimalGenShouldNotGenerateNull() {
-    checkNotNull(bigDecimalGens());
+    assertNotNull(bigDecimalGens());
   }
 
   @Test
   public void doubleGenShouldNotGenerateNaNNorInfinity() {
-    checkProperty(doubleGens(), value -> Assert.assertTrue(Double.isFinite(value)));
+    assertProperty(doubleGens(), value -> Assert.assertTrue(Double.isFinite(value)));
   }
 
   @Test
@@ -65,7 +65,7 @@ public class Numbers_UT {
       int min = range.getKey();
       int max = range.getValue();
       Generator<Integer> generator = Numbers.integerGen(min, max);
-      checkProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
+      assertProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
     });
   }
 
@@ -75,7 +75,7 @@ public class Numbers_UT {
       long min = range.getKey();
       long max = range.getValue();
       Generator<Long> generator = Numbers.longGen(min, max);
-      checkProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
+      assertProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
     });
   }
 
@@ -85,7 +85,7 @@ public class Numbers_UT {
       double min = range.getKey();
       double max = range.getValue();
       Generator<Double> generator = Numbers.doubleGen(min, max);
-      checkProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
+      assertProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
     });
   }
 
@@ -95,7 +95,7 @@ public class Numbers_UT {
       BigInteger min = range.getKey();
       BigInteger max = range.getValue();
       Generator<BigInteger> generator = Numbers.bigIntegerGen(min, max);
-      checkProperty(generator, value -> Assert.assertTrue(min.compareTo(value) <= 0 && value.compareTo(max) <= 0));
+      assertProperty(generator, value -> Assert.assertTrue(min.compareTo(value) <= 0 && value.compareTo(max) <= 0));
     });
   }
 
@@ -105,8 +105,78 @@ public class Numbers_UT {
       BigDecimal min = range.getKey();
       BigDecimal max = range.getValue();
       Generator<BigDecimal> generator = Numbers.bigDecimalGen(min, max);
-      checkProperty(generator, value -> Assert.assertTrue(min.compareTo(value) <= 0 && value.compareTo(max) <= 0));
+      assertProperty(generator, value -> Assert.assertTrue(min.compareTo(value) <= 0 && value.compareTo(max) <= 0));
     });
+  }
+
+  @Test
+  public void integerGenShouldThrowIfGivenReversedOrEmptyRange() {
+    integerRanges().forEach(range -> {
+      int min = range.getKey();
+      int max = range.getValue();
+      assertThrow(() -> Numbers.integerGen(max, min));
+      assertThrow(() -> Numbers.integerGen(max, max));
+    });
+  }
+
+  @Test
+  public void longGenShouldThrowIfGivenReversedOrEmptyRange() {
+    longRanges().forEach(range -> {
+      long min = range.getKey();
+      long max = range.getValue();
+      assertThrow(() -> Numbers.longGen(max, min));
+      assertThrow(() -> Numbers.longGen(max, max));
+    });
+  }
+
+  @Test
+  public void doubleGenShouldThrowIfGivenReversedOrEmptyRange() {
+    doubleRanges().forEach(range -> {
+      double min = range.getKey();
+      double max = range.getValue();
+      assertThrow(() -> Numbers.doubleGen(max, min));
+      assertThrow(() -> Numbers.doubleGen(max, max));
+    });
+  }
+
+  @Test
+  public void bitIntegerGenShouldThrowIfGivenReversedOrEmptyRange() {
+    bigIntegerRanges().forEach(range -> {
+      BigInteger min = range.getKey();
+      BigInteger max = range.getValue();
+      assertThrow(() -> Numbers.bigIntegerGen(max, min));
+      assertThrow(() -> Numbers.bigIntegerGen(max, max));
+    });
+  }
+
+  @Test
+  public void bitDecimalGenShouldThrowIfGivenReversedOrEmptyRange() {
+    bigDecimalRanges().forEach(range -> {
+      BigDecimal min = range.getKey();
+      BigDecimal max = range.getValue();
+      assertThrow(() -> Numbers.bigDecimalGen(max, min));
+      assertThrow(() -> Numbers.bigDecimalGen(max, max));
+    });
+  }
+
+  @Test
+  public void doubleGenShouldThrowIfGivenNonFiniteBound() {
+    Arrays.asList(Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY).forEach(bound -> {
+      assertThrow(() -> Numbers.doubleGen(0.d, bound));
+      assertThrow(() -> Numbers.doubleGen(bound, 0.d));
+    });
+  }
+
+  @Test
+  public void bitIntegerGenShouldThrowIfGivenNullBound() {
+    assertThrow(() -> Numbers.bigIntegerGen(null, BigInteger.ONE));
+    assertThrow(() -> Numbers.bigIntegerGen(BigInteger.ONE, null));
+  }
+
+  @Test
+  public void bitDecimalGenShouldThrowIfGivenNullBound() {
+    assertThrow(() -> Numbers.bigDecimalGen(null, BigDecimal.ONE));
+    assertThrow(() -> Numbers.bigDecimalGen(BigDecimal.ONE, null));
   }
 
   private static Stream<Map.Entry<Integer, Integer>> integerRanges() {
@@ -195,22 +265,34 @@ public class Numbers_UT {
     return bigDecimalRanges().map(range -> Numbers.bigDecimalGen(range.getKey(), range.getValue()));
   }
 
-  private static <T> void checkNotNull(Generator<T> generator) {
-    checkProperty(generator, Assert::assertNotNull);
+  private static <T> void assertNotNull(Generator<T> generator) {
+    assertProperty(generator, Assert::assertNotNull);
   }
 
-  private static <T> void checkNotNull(Stream<Generator<T>> generators) {
-    generators.forEach(Numbers_UT::checkNotNull);
+  private static <T> void assertNotNull(Stream<Generator<T>> generators) {
+    generators.forEach(Numbers_UT::assertNotNull);
   }
 
-  private static <T> void checkProperty(Stream<Generator<T>> generators, Consumer<T> checker) {
-    generators.forEach(gen -> checkProperty(gen, checker));
+  private static <T> void assertProperty(Stream<Generator<T>> generators, Consumer<T> checker) {
+    generators.forEach(gen -> assertProperty(gen, checker));
   }
 
-  private static <T> void checkProperty(Generator<T> generator, Consumer<T> checker) {
+  private static <T> void assertProperty(Generator<T> generator, Consumer<T> checker) {
     Random random = new Random(SEED);
     for (int i = 0; i < NB_SAMPLES; i++) {
       checker.accept(generator.get(random));
     }
+  }
+
+  private static void assertThrow(CheckedSupplier<?, ?> supplier) {
+    try {
+      supplier.get();
+      Assert.fail();
+    } catch (Exception ignored) {
+    }
+  }
+
+  public interface CheckedSupplier<T, X extends Exception> {
+    T get() throws X;
   }
 }

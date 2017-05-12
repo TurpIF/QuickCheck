@@ -4,8 +4,14 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.Double.isFinite;
 
-public class Numbers {
+public final class Numbers {
+
+  private Numbers() {
+    /* factory class */
+  }
 
   public static Generator<Integer> integerGen() {
     return integerGen(Integer.MIN_VALUE, Integer.MAX_VALUE);
@@ -56,7 +62,10 @@ public class Numbers {
   }
 
   public static Generator<Double> doubleGen(double min, double max) {
+    checkArgument(isFinite(min));
+    checkArgument(isFinite(max));
     checkArgument(max > min);
+
     return re -> {
       double delta = max - min;
       if (delta != Double.POSITIVE_INFINITY) {
@@ -79,6 +88,8 @@ public class Numbers {
   }
 
   public static Generator<BigInteger> bigIntegerGen(BigInteger min, BigInteger max) {
+    checkNotNull(min);
+    checkNotNull(max);
     checkArgument(max.compareTo(min) > 0);
     BigInteger delta = max.subtract(min);
 
@@ -92,13 +103,13 @@ public class Numbers {
   }
 
   public static Generator<BigDecimal> bigDecimalGen(BigDecimal min, BigDecimal max) {
+    checkNotNull(min);
+    checkNotNull(max);
     checkArgument(max.compareTo(min) > 0);
 
     BigInteger minInt = min.unscaledValue();
     BigInteger maxInt = max.unscaledValue();
-    Generator<BigInteger> bigIntGen = minInt.equals(maxInt)
-        ? Generators.constGen(BigInteger.ZERO)
-        : bigIntegerGen(minInt.min(maxInt), minInt.max(maxInt));
+    Generator<BigInteger> bigIntGen = bigIntegerGen(minInt.min(maxInt), minInt.max(maxInt));
 
     int minScale = min.scale();
     int maxScale = max.scale();
