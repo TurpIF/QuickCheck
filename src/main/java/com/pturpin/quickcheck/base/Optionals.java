@@ -17,6 +17,13 @@ public final class Optionals {
 
   private Optionals() { /* Helper class */ }
 
+  public static <T> Optional<T> guard(boolean condition, Supplier<Optional<T>> supplier) {
+    if (!condition) {
+      return Optional.empty();
+    }
+    return supplier.get();
+  }
+
   public static <T, A, R> Collector<Optional<T>, Optional<A>, Optional<R>> allPresent(Collector<T, A, ? extends R> downstream) {
     return new AllPresentCollector<>(downstream);
   }

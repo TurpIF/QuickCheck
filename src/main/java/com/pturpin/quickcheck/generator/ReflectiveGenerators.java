@@ -20,6 +20,7 @@ import java.util.stream.Stream;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.pturpin.quickcheck.base.Optionals.guard;
 import static com.pturpin.quickcheck.generator.Generators.*;
 
 /**
@@ -90,13 +91,6 @@ public final class ReflectiveGenerators {
     }
 
     return Optional.empty();
-  }
-
-  private static <T> Optional<T> guard(boolean condition, Supplier<Optional<T>> supplier) {
-    if (!condition) {
-      return Optional.empty();
-    }
-    return supplier.get();
   }
 
   private static <T> T newFactory(Class<T> klass) {
