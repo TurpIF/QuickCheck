@@ -1,13 +1,16 @@
 package com.pturpin.quickcheck.generator;
 
-import com.google.common.collect.Maps;
+import com.pturpin.quickcheck.base.Ranges;
+import com.pturpin.quickcheck.base.Ranges.DoubleRange;
+import com.pturpin.quickcheck.base.Ranges.IntRange;
+import com.pturpin.quickcheck.base.Ranges.LongRange;
+import com.pturpin.quickcheck.base.Ranges.Range;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Random;
 import java.util.function.Consumer;
 import java.util.stream.DoubleStream;
@@ -21,7 +24,7 @@ import java.util.stream.Stream;
 public class Numbers_UT {
 
   private static final long SEED = 0L;
-  private static final long NB_SAMPLES = 10000;
+  private static final long NB_SAMPLES = 1000;
   private static final long NB_BOUNDS = 20;
 
   @Test
@@ -62,124 +65,62 @@ public class Numbers_UT {
   @Test
   public void boundedIntegerGenShouldBeBounded() {
     integerRanges().forEach(range -> {
-      int min = range.getKey();
-      int max = range.getValue();
-      Generator<Integer> generator = Numbers.integerGen(min, max);
-      assertProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
+      Generator<Integer> generator = Numbers.integerGen(range);
+      assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
 
   @Test
   public void boundedLongGenShouldBeBounded() {
     longRanges().forEach(range -> {
-      long min = range.getKey();
-      long max = range.getValue();
-      Generator<Long> generator = Numbers.longGen(min, max);
-      assertProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
+      Generator<Long> generator = Numbers.longGen(range);
+      assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
 
   @Test
   public void boundedDoubleGenShouldBeBounded() {
     doubleRanges().forEach(range -> {
-      double min = range.getKey();
-      double max = range.getValue();
-      Generator<Double> generator = Numbers.doubleGen(min, max);
-      assertProperty(generator, value -> Assert.assertTrue(min <= value && value <= max));
+      Generator<Double> generator = Numbers.doubleGen(range);
+      assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
 
   @Test
   public void boundedBigIntegerGenShouldBeBounded() {
     bigIntegerRanges().forEach(range -> {
-      BigInteger min = range.getKey();
-      BigInteger max = range.getValue();
-      Generator<BigInteger> generator = Numbers.bigIntegerGen(min, max);
-      assertProperty(generator, value -> Assert.assertTrue(min.compareTo(value) <= 0 && value.compareTo(max) <= 0));
+      Generator<BigInteger> generator = Numbers.bigIntegerGen(range);
+      assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
 
   @Test
   public void boundedBigDecimalGenShouldBeBounded() {
     bigDecimalRanges().forEach(range -> {
-      BigDecimal min = range.getKey();
-      BigDecimal max = range.getValue();
-      Generator<BigDecimal> generator = Numbers.bigDecimalGen(min, max);
-      assertProperty(generator, value -> Assert.assertTrue(min.compareTo(value) <= 0 && value.compareTo(max) <= 0));
-    });
-  }
-
-  @Test
-  public void integerGenShouldThrowIfGivenReversedOrEmptyRange() {
-    integerRanges().forEach(range -> {
-      int min = range.getKey();
-      int max = range.getValue();
-      assertThrow(() -> Numbers.integerGen(max, min));
-      assertThrow(() -> Numbers.integerGen(max, max));
-    });
-  }
-
-  @Test
-  public void longGenShouldThrowIfGivenReversedOrEmptyRange() {
-    longRanges().forEach(range -> {
-      long min = range.getKey();
-      long max = range.getValue();
-      assertThrow(() -> Numbers.longGen(max, min));
-      assertThrow(() -> Numbers.longGen(max, max));
-    });
-  }
-
-  @Test
-  public void doubleGenShouldThrowIfGivenReversedOrEmptyRange() {
-    doubleRanges().forEach(range -> {
-      double min = range.getKey();
-      double max = range.getValue();
-      assertThrow(() -> Numbers.doubleGen(max, min));
-      assertThrow(() -> Numbers.doubleGen(max, max));
-    });
-  }
-
-  @Test
-  public void bitIntegerGenShouldThrowIfGivenReversedOrEmptyRange() {
-    bigIntegerRanges().forEach(range -> {
-      BigInteger min = range.getKey();
-      BigInteger max = range.getValue();
-      assertThrow(() -> Numbers.bigIntegerGen(max, min));
-      assertThrow(() -> Numbers.bigIntegerGen(max, max));
-    });
-  }
-
-  @Test
-  public void bitDecimalGenShouldThrowIfGivenReversedOrEmptyRange() {
-    bigDecimalRanges().forEach(range -> {
-      BigDecimal min = range.getKey();
-      BigDecimal max = range.getValue();
-      assertThrow(() -> Numbers.bigDecimalGen(max, min));
-      assertThrow(() -> Numbers.bigDecimalGen(max, max));
+      Generator<BigDecimal> generator = Numbers.bigDecimalGen(range);
+      assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
 
   @Test
   public void doubleGenShouldThrowIfGivenNonFiniteBound() {
     Arrays.asList(Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY).forEach(bound -> {
-      assertThrow(() -> Numbers.doubleGen(0.d, bound));
-      assertThrow(() -> Numbers.doubleGen(bound, 0.d));
+      assertThrow(() -> Numbers.doubleGen(Ranges.closed(0.d, bound.doubleValue())));
+      assertThrow(() -> Numbers.doubleGen(Ranges.closed(bound.doubleValue(), 0.d)));
     });
   }
 
   @Test
-  public void bitIntegerGenShouldThrowIfGivenNullBound() {
-    assertThrow(() -> Numbers.bigIntegerGen(null, BigInteger.ONE));
-    assertThrow(() -> Numbers.bigIntegerGen(BigInteger.ONE, null));
+  public void bitIntegerGenShouldThrowIfGivenNullRange() {
+    assertThrow(() -> Numbers.bigIntegerGen(null));
   }
 
   @Test
-  public void bitDecimalGenShouldThrowIfGivenNullBound() {
-    assertThrow(() -> Numbers.bigDecimalGen(null, BigDecimal.ONE));
-    assertThrow(() -> Numbers.bigDecimalGen(BigDecimal.ONE, null));
+  public void bitDecimalGenShouldThrowIfGivenNullRange() {
+    assertThrow(() -> Numbers.bigDecimalGen(null));
   }
 
-  private static Stream<Map.Entry<Integer, Integer>> integerRanges() {
+  private static Stream<IntRange> integerRanges() {
     Random random = new Random(SEED);
 
     int[] bounds = IntStream.concat(
@@ -191,12 +132,16 @@ public class Numbers_UT {
     return Arrays.stream(bounds)
         .boxed()
         .flatMap(bound1 -> Arrays.stream(bounds)
-            .filter(bound2 -> bound2 > bound1)
+            .filter(bound2 -> bound2 >= bound1)
             .boxed()
-            .map(bound2 -> Maps.immutableEntry(bound1, bound2)));
+            .flatMap(bound2 -> Stream.<IntRange>of(
+                Ranges.closed(bound1.intValue(), bound2.intValue()),
+                Ranges.opened(bound1.intValue(), bound2.intValue())
+            )))
+        .filter(range -> !range.isEmpty());
   }
 
-  private static Stream<Map.Entry<Long, Long>> longRanges() {
+  private static Stream<LongRange> longRanges() {
     Random random = new Random(SEED);
 
     long[] bounds = LongStream.concat(
@@ -208,12 +153,16 @@ public class Numbers_UT {
     return Arrays.stream(bounds)
         .boxed()
         .flatMap(bound1 -> Arrays.stream(bounds)
-            .filter(bound2 -> bound2 > bound1)
+            .filter(bound2 -> bound2 >= bound1)
             .boxed()
-            .map(bound2 -> Maps.immutableEntry(bound1, bound2)));
+            .flatMap(bound2 -> Stream.<LongRange>of(
+                Ranges.closed(bound1.longValue(), bound2.longValue()),
+                Ranges.opened(bound1.longValue(), bound2.longValue())
+            )))
+        .filter(range -> !range.isEmpty());
   }
 
-  private static Stream<Map.Entry<Double, Double>> doubleRanges() {
+  private static Stream<DoubleRange> doubleRanges() {
     Random random = new Random(SEED);
 
     double[] bounds = DoubleStream.concat(
@@ -229,40 +178,44 @@ public class Numbers_UT {
     return Arrays.stream(bounds)
         .boxed()
         .flatMap(bound1 -> Arrays.stream(bounds)
-            .filter(bound2 -> bound2 > bound1)
+            .filter(bound2 -> bound2 >= bound1)
             .boxed()
-            .map(bound2 -> Maps.immutableEntry(bound1, bound2)));
+            .flatMap(bound2 -> Stream.<DoubleRange>of(
+                Ranges.closed(bound1.doubleValue(), bound2.doubleValue()),
+                Ranges.opened(bound1.doubleValue(), bound2.doubleValue())
+            )))
+        .filter(range -> !range.isEmpty());
   }
 
-  private static Stream<Map.Entry<BigInteger, BigInteger>> bigIntegerRanges() {
-    return longRanges().map(range -> Maps.immutableEntry(BigInteger.valueOf(range.getKey()), BigInteger.valueOf(range.getValue())));
+  private static Stream<Range<BigInteger>> bigIntegerRanges() {
+    return longRanges().map(range -> Ranges.map(Ranges.boxed(range), BigInteger::valueOf));
   }
 
-  private static Stream<Map.Entry<BigDecimal, BigDecimal>> bigDecimalRanges() {
-    return doubleRanges().map(range -> Maps.immutableEntry(BigDecimal.valueOf(range.getKey()), BigDecimal.valueOf(range.getValue())));
+  private static Stream<Range<BigDecimal>> bigDecimalRanges() {
+    return doubleRanges().map(range -> Ranges.map(Ranges.boxed(range), BigDecimal::valueOf));
   }
 
   private static Stream<Generator<Integer>> integerGens() {
     return Stream.concat(Stream.of(Numbers.integerGen()),
-        integerRanges().map(range -> Numbers.integerGen(range.getKey(), range.getValue())));
+        integerRanges().map(Numbers::integerGen));
   }
 
   private static Stream<Generator<Long>> longGens() {
     return Stream.concat(Stream.of(Numbers.longGen()),
-        longRanges().map(range -> Numbers.longGen(range.getKey(), range.getValue())));
+        longRanges().map(Numbers::longGen));
   }
 
   private static Stream<Generator<Double>> doubleGens() {
     return Stream.concat(Stream.of(Numbers.doubleGen()),
-        doubleRanges().map(range -> Numbers.doubleGen(range.getKey(), range.getValue())));
+        doubleRanges().map(Numbers::doubleGen));
   }
 
   private static Stream<Generator<BigInteger>> bigIntegerGens() {
-    return bigIntegerRanges().map(range -> Numbers.bigIntegerGen(range.getKey(), range.getValue()));
+    return bigIntegerRanges().map(Numbers::bigIntegerGen);
   }
 
   private static Stream<Generator<BigDecimal>> bigDecimalGens() {
-    return bigDecimalRanges().map(range -> Numbers.bigDecimalGen(range.getKey(), range.getValue()));
+    return bigDecimalRanges().map(Numbers::bigDecimalGen);
   }
 
   private static <T> void assertNotNull(Generator<T> generator) {
