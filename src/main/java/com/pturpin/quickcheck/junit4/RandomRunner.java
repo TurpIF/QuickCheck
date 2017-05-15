@@ -8,6 +8,8 @@ import com.pturpin.quickcheck.test.TestResult;
 import com.pturpin.quickcheck.test.TestRunner;
 import com.pturpin.quickcheck.test.TestRunners;
 import org.junit.Test;
+import org.junit.internal.runners.model.ReflectiveCallable;
+import org.junit.internal.runners.statements.Fail;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
@@ -18,10 +20,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.*;
@@ -113,7 +113,7 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     for (FrameworkMethod method : methods) {
       String methodName = method.getName() + "(" + method + ")";
       if (method.isStatic()) {
-        errors.add(new Exception("Method " + methodName + " should be static"));
+        errors.add(new Exception("Method " + methodName + " should not be static"));
       }
       if (!method.isPublic()) {
         errors.add(new Exception("Method " + methodName + " should be public"));
@@ -125,10 +125,29 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
   }
 
   @Override
+  protected Statement methodBlock(FrameworkMethod method) {
+    Object test;
+    try {
+      test = new ReflectiveCallable() {
+        @Override
+        protected Object runReflectiveCall() throws Throwable {
+          return createTest();
+        }
+      }.run();
+    } catch (Throwable e) {
+      return new Fail(e);
+    }
+
+    return methodInvoker(method, test);
+  }
+
+  @Override
   protected Statement methodInvoker(FrameworkMethod method, Object test) {
     Method reflectMethod = method.getMethod();
     Generator<Object[]> parametersGen = generators.parametersGen(reflectMethod).get();
-    TestRunner runner = TestRunners.randomRunner(reflectMethod, test, parametersGen, nbRun, random);
+    Function<Object[], TestRunner> runnerFactory = TestRunners.methodRunner(reflectMethod, test);
+    Function<Object[], TestRunner> decoratedRunnerFactory = decorateRunnerFactory(method, test, runnerFactory);
+    TestRunner runner = TestRunners.randomRunner(decoratedRunnerFactory, parametersGen, nbRun, random);
 
     return LambdaStatement.of(() -> {
       TestResult result = runner.run();
@@ -139,6 +158,32 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
         throw new SkippedTestError(reflectMethod);
       }
     });
+  }
+
+  private Function<Object[], TestRunner> decorateRunnerFactory(FrameworkMethod method, Object test, Function<Object[], TestRunner> factory) {
+    return parameters -> {
+      TestRunner testRunner = factory.apply(parameters);
+      TestResult[] result = new TestResult[]{ TestResult.failure(new IllegalStateException("Test result was not set")) };
+      Statement statement = LambdaStatement.of(() -> result[0] = testRunner.run());
+      Statement decoratedStatement = decorateStatement(method, test, statement);
+      return () -> {
+        try {
+          decoratedStatement.evaluate();
+        } catch (Throwable t) {
+          return TestResult.failure(t);
+        }
+        return result[0];
+      };
+    };
+  }
+
+  private Statement decorateStatement(FrameworkMethod method, Object test, Statement statement) {
+    statement = possiblyExpectingExceptions(method, test, statement);
+    statement = withPotentialTimeout(method, test, statement);
+    statement = withBefores(method, test, statement);
+    statement = withAfters(method, test, statement);
+    // FIXME statement = withRules(method, test, statement);
+    return statement;
   }
 
   @Target(ElementType.TYPE)
