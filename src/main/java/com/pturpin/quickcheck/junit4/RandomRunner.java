@@ -164,13 +164,24 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     return parameters -> {
       TestRunner testRunner = factory.apply(parameters);
       TestResult[] result = new TestResult[]{ TestResult.failure(new IllegalStateException("Test result was not set")) };
-      Statement statement = LambdaStatement.of(() -> result[0] = testRunner.run());
-      Statement decoratedStatement = decorateStatement(method, test, statement);
+      boolean[] hasThrow = new boolean[]{ false };
+
+      Statement decoratedStatement = decorateStatement(method, test, LambdaStatement.of(() -> {
+        result[0] = testRunner.run();
+        if (result[0].getFailureCause().isPresent()) {
+          hasThrow[0] = true;
+          throw result[0].getFailureCause().get();
+        }
+      }));
+
       return () -> {
         try {
           decoratedStatement.evaluate();
         } catch (Throwable t) {
           return TestResult.failure(t);
+        }
+        if (hasThrow[0]) {
+          return TestResult.ok();
         }
         return result[0];
       };
