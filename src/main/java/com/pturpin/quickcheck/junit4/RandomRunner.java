@@ -10,6 +10,8 @@ import com.pturpin.quickcheck.test.TestRunners;
 import org.junit.Test;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.internal.runners.statements.Fail;
+import org.junit.rules.RunRules;
+import org.junit.rules.TestRule;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
@@ -20,7 +22,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -193,9 +198,40 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     statement = withPotentialTimeout(method, test, statement);
     statement = withBefores(method, test, statement);
     statement = withAfters(method, test, statement);
-    // FIXME statement = withRules(method, test, statement);
+    statement = withRules(method, test, statement);
     return statement;
   }
+
+  /** Copy of BlockJUnit4ClassRunner to reproduce rule feature **/
+
+  private Statement withRules(FrameworkMethod method, Object target, Statement statement) {
+    List<TestRule> testRules = getTestRules(target);
+    Statement result = statement;
+    result = withMethodRules(method, testRules, target, result);
+    result = withTestRules(method, testRules, result);
+
+    return result;
+  }
+
+  private Statement withMethodRules(FrameworkMethod method, List<TestRule> testRules, Object target, Statement result) {
+    for (org.junit.rules.MethodRule each : getMethodRules(target)) {
+      if (!testRules.contains(each)) {
+        result = each.apply(result, method, target);
+      }
+    }
+    return result;
+  }
+
+  private List<org.junit.rules.MethodRule> getMethodRules(Object target) {
+    return rules(target);
+  }
+
+  private Statement withTestRules(FrameworkMethod method, List<TestRule> testRules, Statement statement) {
+    return testRules.isEmpty() ? statement :
+        new RunRules(statement, testRules, describeChild(method));
+  }
+
+  /** End of copy of BlockJUnit4ClassRunner **/
 
   @Target(ElementType.TYPE)
   @Retention(RetentionPolicy.RUNTIME)
