@@ -3,7 +3,6 @@ package com.pturpin.quickcheck.test;
 import com.pturpin.quickcheck.generator.Generator;
 import com.pturpin.quickcheck.generator.ReflectiveGenerators;
 import com.pturpin.quickcheck.registry.Registry;
-import com.sun.istack.internal.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -42,7 +41,7 @@ public final class TestRunners {
     return methodRunner(method, null);
   }
 
-  public static Function<Object[], TestRunner> methodRunner(Method method, @Nullable Object instance) {
+  public static Function<Object[], TestRunner> methodRunner(Method method, Object instance) {
     checkArgument(instance != null ||  Modifier.isStatic(method.getModifiers()),
         "Impossible to invoke a non-static method without instance : %s", method);
 
