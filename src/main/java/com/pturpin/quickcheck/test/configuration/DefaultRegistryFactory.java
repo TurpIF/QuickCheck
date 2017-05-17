@@ -1,4 +1,4 @@
-package com.pturpin.quickcheck.junit4;
+package com.pturpin.quickcheck.test.configuration;
 
 import com.pturpin.quickcheck.identifier.ClassIdentifier;
 import com.pturpin.quickcheck.registry.Registries;
@@ -9,7 +9,7 @@ import static com.pturpin.quickcheck.generator.Numbers.doubleGen;
 /**
  * Created by turpif on 28/04/17.
  */
-final class DefaultRegistryFactory implements RandomRunner.RegistryFactory {
+final class DefaultRegistryFactory implements RegistryFactory {
 
   public DefaultRegistryFactory() {
     // nothing
