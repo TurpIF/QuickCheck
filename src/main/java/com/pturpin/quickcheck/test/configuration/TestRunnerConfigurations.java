@@ -2,6 +2,7 @@ package com.pturpin.quickcheck.test.configuration;
 
 import com.pturpin.quickcheck.base.Reflections;
 
+import java.lang.reflect.Method;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -16,6 +17,21 @@ public class TestRunnerConfigurations {
   static final boolean DEFAULT_ACCEPT_SKIPPED = false;
   private static final RandomFactory DEFAULT_RANDOM_FACTORY = new DefaultRandomFactory();
   private static final RegistryFactory DEFAULT_REGISTRY_FACTORY = new DefaultRegistryFactory();
+
+  public static TestRunnerConfiguration reflectiveMethodConfiguration(Method method, TestRunnerConfiguration baseConfig) throws ReflectiveOperationException {
+    checkNotNull(method);
+    checkNotNull(baseConfig);
+
+    TestConfiguration.NbRun nbRunAnnot = method.getAnnotation(TestConfiguration.NbRun.class);
+    TestConfiguration.Skipped skippedAnnot = method.getAnnotation(TestConfiguration.Skipped.class);
+    TestConfiguration.Random randomAnnot = method.getAnnotation(TestConfiguration.Random.class);
+
+    int nbRun = nbRunAnnot != null ? nbRunAnnot.value() : baseConfig.getNbRun();
+    boolean acceptSkipped = skippedAnnot != null ? skippedAnnot.accepted() : baseConfig.acceptSkipped();
+    RandomFactory randomFactory = randomAnnot != null ? Reflections.newFactory(randomAnnot.value()) : baseConfig.getRandomFactory();
+
+    return new TestRunnerConfigurationImpl(nbRun, acceptSkipped, randomFactory, baseConfig.getRegistryFactory());
+  }
 
   public static Optional<TestRunnerConfiguration> reflectiveConfiguration(Class<?> klass) throws ReflectiveOperationException {
     TestConfiguration annotation = klass.getAnnotation(TestConfiguration.class);

@@ -1,6 +1,5 @@
 package com.pturpin.quickcheck.junit4;
 
-import com.pturpin.quickcheck.base.Reflections;
 import com.pturpin.quickcheck.generator.Generator;
 import com.pturpin.quickcheck.generator.ReflectiveGenerators;
 import com.pturpin.quickcheck.test.TestResult;
@@ -9,6 +8,7 @@ import com.pturpin.quickcheck.test.TestRunners;
 import com.pturpin.quickcheck.test.configuration.TestRunnerConfiguration;
 import com.pturpin.quickcheck.test.configuration.TestRunnerConfigurations;
 import org.junit.Test;
+import org.junit.internal.runners.statements.Fail;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
@@ -50,14 +50,6 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     validateGeneratorErrors();
   }
 
-  private static <T> T newFactory(Class<T> klass) throws InitializationError {
-    try {
-      return Reflections.newFactory(klass);
-    } catch (ReflectiveOperationException e) {
-      throw new InitializationError(e);
-    }
-  }
-
   private void validateGeneratorErrors() throws InitializationError{
     List<Throwable> errors = new ArrayList<>();
     getTestClass().getAnnotatedMethods(Test.class)
@@ -96,15 +88,23 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
   @Override
   protected Statement methodInvoker(FrameworkMethod method, Object test) {
     Method reflectMethod = method.getMethod();
+
+    TestRunnerConfiguration methodConfiguration;
+    try {
+      methodConfiguration = TestRunnerConfigurations.reflectiveMethodConfiguration(reflectMethod, this.configuration);
+    } catch (ReflectiveOperationException e) {
+      return new Fail(e);
+    }
+
     Generator<Object[]> parametersGen = generators.parametersGen(reflectMethod).get();
-    TestRunner runner = TestRunners.randomRunner(reflectMethod, test, parametersGen, configuration.getNbRun(), configuration.getRandomFactory()::create);
+    TestRunner runner = TestRunners.randomRunner(reflectMethod, test, parametersGen, methodConfiguration.getNbRun(), methodConfiguration.getRandomFactory()::create);
 
     return LambdaStatement.of(() -> {
       TestResult result = runner.run();
       if (result.getFailureCause().isPresent()) {
         throw result.getFailureCause().get();
       }
-      if (!configuration.acceptSkipped() && TestResult.TestState.SKIPPED.equals(result.getState())) {
+      if (!methodConfiguration.acceptSkipped() && TestResult.TestState.SKIPPED.equals(result.getState())) {
         throw new SkippedTestError(reflectMethod);
       }
     });
