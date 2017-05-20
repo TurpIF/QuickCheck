@@ -114,7 +114,7 @@ public final class Generators {
   }
 
   private static RuntimeException reachMaxFilterException() {
-    return new RuntimeException("Generate " + MAX_FILTER_LOOP + " values but none match given predicate");
+    return new RuntimeException("Generate " + MAX_FILTER_LOOP + " values but none match given filtering predicate");
   }
 
   public static <T, R> Generator<R> map(Generator<? extends T> generator, Function<T, R> mapper) {
