@@ -9,6 +9,7 @@ import com.pturpin.quickcheck.base.Ranges.Range;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Random;
 import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -31,6 +32,13 @@ public final class Numbers {
 
     if (min == max) {
       return Generators.constGen(min);
+    } else if (min == Integer.MIN_VALUE && max == Integer.MAX_VALUE) {
+      return Random::nextInt;
+    } else if (min == -max) {
+      if (max == Integer.MAX_VALUE) {
+        return Generators.filter(Random::nextInt, (int value) -> value != Integer.MIN_VALUE);
+      }
+      return re -> re.nextInt(max + 1) * (re.nextBoolean() ? 1 : -1);
     }
 
     return re -> {
@@ -59,6 +67,13 @@ public final class Numbers {
 
     if (min == max) {
       return Generators.constGen(min);
+    } else if (min == Long.MIN_VALUE && max == Long.MAX_VALUE) {
+      return Random::nextLong;
+    } else if (min == -max) {
+      if (max == Integer.MAX_VALUE) {
+        return Generators.filter(Random::nextLong, (long value) -> value != Long.MIN_VALUE);
+      }
+      return re -> Math.floorMod(re.nextLong(), max + 1) * (re.nextBoolean() ? 1 : -1);
     }
 
     return re -> {
@@ -89,6 +104,10 @@ public final class Numbers {
 
     checkArgument(isFinite(min));
     checkArgument(isFinite(max));
+
+    if (min == -max) {
+      return re -> re.nextDouble() * max * (re.nextBoolean() ? 1 : -1);
+    }
 
     return re -> {
       double delta = max - min;
@@ -130,6 +149,9 @@ public final class Numbers {
 
     if (min.compareTo(max) == 0) {
       return Generators.constGen(max);
+    } else if (max.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0
+        && min.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) >= 0) {
+      return Generators.map(longGen(Ranges.closed(min.longValue(), max.longValue())), BigInteger::valueOf);
     }
 
     BigInteger delta = max.subtract(min);
