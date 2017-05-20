@@ -192,7 +192,7 @@ public final class Numbers {
     int minScale = min.scale();
     int maxScale = max.scale();
     Generator<Integer> scaleGen = minScale == maxScale
-        ? Generators.constGen(1)
+        ? Generators.constGen(minScale)
         : integerGen(Ranges.closed(Math.min(minScale, maxScale), Math.max(minScale, maxScale)));
 
     BigDecimal delta = max.subtract(min);
