@@ -152,7 +152,13 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     Generator<Object[]> parametersGen = generators.parametersGen(reflectMethod).get();
     Function<Object[], TestRunner> runnerFactory = TestRunners.methodRunner(reflectMethod, test);
     Function<Object[], TestRunner> decoratedRunnerFactory = decorateRunnerFactory(method, test, runnerFactory);
-    TestRunner runner = TestRunners.randomRunner(decoratedRunnerFactory, parametersGen, nbRun, random);
+
+    // "Normal" test methods are simply executed once as a normal junit test
+    long methodNbRun = nbRun;
+    if (void.class.equals(method.getReturnType()) && method.getMethod().getParameterCount() == 0) {
+      methodNbRun = 1;
+    }
+    TestRunner runner = TestRunners.randomRunner(decoratedRunnerFactory, parametersGen, methodNbRun, random);
 
     return LambdaStatement.of(() -> {
       TestResult result = runner.run();
