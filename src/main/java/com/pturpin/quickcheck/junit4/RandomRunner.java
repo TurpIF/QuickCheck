@@ -8,6 +8,10 @@ import com.pturpin.quickcheck.test.TestResult;
 import com.pturpin.quickcheck.test.TestRunner;
 import com.pturpin.quickcheck.test.TestRunners;
 import org.junit.Test;
+import org.junit.internal.runners.model.ReflectiveCallable;
+import org.junit.internal.runners.statements.Fail;
+import org.junit.rules.RunRules;
+import org.junit.rules.TestRule;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
@@ -22,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.*;
@@ -113,7 +118,7 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     for (FrameworkMethod method : methods) {
       String methodName = method.getName() + "(" + method + ")";
       if (method.isStatic()) {
-        errors.add(new Exception("Method " + methodName + " should be static"));
+        errors.add(new Exception("Method " + methodName + " should not be static"));
       }
       if (!method.isPublic()) {
         errors.add(new Exception("Method " + methodName + " should be public"));
@@ -125,10 +130,35 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
   }
 
   @Override
+  protected Statement methodBlock(FrameworkMethod method) {
+    Object test;
+    try {
+      test = new ReflectiveCallable() {
+        @Override
+        protected Object runReflectiveCall() throws Throwable {
+          return createTest();
+        }
+      }.run();
+    } catch (Throwable e) {
+      return new Fail(e);
+    }
+
+    return methodInvoker(method, test);
+  }
+
+  @Override
   protected Statement methodInvoker(FrameworkMethod method, Object test) {
     Method reflectMethod = method.getMethod();
     Generator<Object[]> parametersGen = generators.parametersGen(reflectMethod).get();
-    TestRunner runner = TestRunners.randomRunner(reflectMethod, test, parametersGen, nbRun, random);
+    Function<Object[], TestRunner> runnerFactory = TestRunners.methodRunner(reflectMethod, test);
+    Function<Object[], TestRunner> decoratedRunnerFactory = decorateRunnerFactory(method, test, runnerFactory);
+
+    // "Normal" test methods are simply executed once as a normal junit test
+    long methodNbRun = nbRun;
+    if (void.class.equals(method.getReturnType()) && method.getMethod().getParameterCount() == 0) {
+      methodNbRun = 1;
+    }
+    TestRunner runner = TestRunners.randomRunner(decoratedRunnerFactory, parametersGen, methodNbRun, random);
 
     return LambdaStatement.of(() -> {
       TestResult result = runner.run();
@@ -140,6 +170,74 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
       }
     });
   }
+
+  private Function<Object[], TestRunner> decorateRunnerFactory(FrameworkMethod method, Object test, Function<Object[], TestRunner> factory) {
+    return parameters -> {
+      TestRunner testRunner = factory.apply(parameters);
+      TestResult[] result = new TestResult[]{ TestResult.failure(new IllegalStateException("Test result was not set")) };
+      boolean[] hasThrow = new boolean[]{ false };
+
+      Statement decoratedStatement = decorateStatement(method, test, LambdaStatement.of(() -> {
+        result[0] = testRunner.run();
+        if (result[0].getFailureCause().isPresent()) {
+          hasThrow[0] = true;
+          throw result[0].getFailureCause().get();
+        }
+      }));
+
+      return () -> {
+        try {
+          decoratedStatement.evaluate();
+        } catch (Throwable t) {
+          return TestResult.failure(t);
+        }
+        if (hasThrow[0]) {
+          return TestResult.ok();
+        }
+        return result[0];
+      };
+    };
+  }
+
+  private Statement decorateStatement(FrameworkMethod method, Object test, Statement statement) {
+    statement = possiblyExpectingExceptions(method, test, statement);
+    statement = withPotentialTimeout(method, test, statement);
+    statement = withBefores(method, test, statement);
+    statement = withAfters(method, test, statement);
+    statement = withRules(method, test, statement);
+    return statement;
+  }
+
+  /** Copy of BlockJUnit4ClassRunner to reproduce rule feature **/
+
+  private Statement withRules(FrameworkMethod method, Object target, Statement statement) {
+    List<TestRule> testRules = getTestRules(target);
+    Statement result = statement;
+    result = withMethodRules(method, testRules, target, result);
+    result = withTestRules(method, testRules, result);
+
+    return result;
+  }
+
+  private Statement withMethodRules(FrameworkMethod method, List<TestRule> testRules, Object target, Statement result) {
+    for (org.junit.rules.MethodRule each : getMethodRules(target)) {
+      if (!testRules.contains(each)) {
+        result = each.apply(result, method, target);
+      }
+    }
+    return result;
+  }
+
+  private List<org.junit.rules.MethodRule> getMethodRules(Object target) {
+    return rules(target);
+  }
+
+  private Statement withTestRules(FrameworkMethod method, List<TestRule> testRules, Statement statement) {
+    return testRules.isEmpty() ? statement :
+        new RunRules(statement, testRules, describeChild(method));
+  }
+
+  /** End of copy of BlockJUnit4ClassRunner **/
 
   @Target(ElementType.TYPE)
   @Retention(RetentionPolicy.RUNTIME)

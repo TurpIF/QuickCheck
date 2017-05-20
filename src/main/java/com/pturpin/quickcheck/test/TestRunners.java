@@ -29,7 +29,12 @@ public final class TestRunners {
   }
 
   public static TestRunner randomRunner(Method method, Object instance, Generator<Object[]> parametersGen, long nbRun, Supplier<Random> random) {
-    return new RandomTestRunner(methodRunner(method, instance), nbRun, parametersGen, random);
+    Function<Object[], TestRunner> runnerFactory = methodRunner(method, instance);
+    return new RandomTestRunner(runnerFactory, nbRun, parametersGen, random);
+  }
+
+  public static TestRunner randomRunner(Function<Object[], TestRunner> runnerFactory, Generator<Object[]> parametersGen, long nbRun, Supplier<Random> random) {
+    return new RandomTestRunner(runnerFactory, nbRun, parametersGen, random);
   }
 
   public static Function<Object[], TestRunner> staticMethodRunner(Method method) {
