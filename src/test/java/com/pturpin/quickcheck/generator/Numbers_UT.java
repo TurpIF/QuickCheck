@@ -1,5 +1,7 @@
 package com.pturpin.quickcheck.generator;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.pturpin.quickcheck.base.Ranges;
 import com.pturpin.quickcheck.base.Ranges.DoubleRange;
 import com.pturpin.quickcheck.base.Ranges.IntRange;
@@ -111,12 +113,12 @@ public class Numbers_UT {
   }
 
   @Test
-  public void bitIntegerGenShouldThrowIfGivenNullRange() {
+  public void bigIntegerGenShouldThrowIfGivenNullRange() {
     assertThrow(() -> Numbers.bigIntegerGen(null));
   }
 
   @Test
-  public void bitDecimalGenShouldThrowIfGivenNullRange() {
+  public void bigDecimalGenShouldThrowIfGivenNullRange() {
     assertThrow(() -> Numbers.bigDecimalGen(null));
   }
 
@@ -126,6 +128,8 @@ public class Numbers_UT {
     int[] bounds = IntStream.concat(
         IntStream.of(Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 1),
         random.ints())
+        .flatMap(bound -> IntStream.of(-bound, bound))
+        .distinct()
         .limit(NB_BOUNDS)
         .toArray();
 
@@ -147,6 +151,8 @@ public class Numbers_UT {
     long[] bounds = LongStream.concat(
         LongStream.of(Long.MIN_VALUE, Long.MAX_VALUE, 0, 1),
         random.longs())
+        .flatMap(bound -> LongStream.of(-bound, bound))
+        .distinct()
         .limit(NB_BOUNDS)
         .toArray();
 
@@ -157,8 +163,7 @@ public class Numbers_UT {
             .boxed()
             .flatMap(bound2 -> Stream.<LongRange>of(
                 Ranges.closed(bound1.longValue(), bound2.longValue()),
-                Ranges.opened(bound1.longValue(), bound2.longValue())
-            )))
+                Ranges.opened(bound1.longValue(), bound2.longValue()))))
         .filter(range -> !range.isEmpty());
   }
 
@@ -166,12 +171,10 @@ public class Numbers_UT {
     Random random = new Random(SEED);
 
     double[] bounds = DoubleStream.concat(
-        DoubleStream.of(Double.MAX_VALUE, -Double.MAX_VALUE,
-            Double.MIN_VALUE, -Double.MIN_VALUE,
-            Double.MIN_NORMAL, -Double.MIN_NORMAL,
-            0.d, -0.d,
-            1.d, -1.d),
+        DoubleStream.of(Double.MAX_VALUE, Double.MIN_VALUE, Double.MIN_NORMAL, 0.d, 1.d),
         random.doubles().map(value -> value * Double.MAX_VALUE * (random.nextBoolean() ? 1 : -1)))
+        .flatMap(bound -> DoubleStream.of(-bound, bound))
+        .distinct()
         .limit(NB_BOUNDS)
         .toArray();
 
@@ -188,11 +191,20 @@ public class Numbers_UT {
   }
 
   private static Stream<Range<BigInteger>> bigIntegerRanges() {
-    return longRanges().map(range -> Ranges.map(Ranges.boxed(range), BigInteger::valueOf));
+    ImmutableSet<BigInteger> multipliers = ImmutableSet.of(BigInteger.ONE, BigInteger.TEN, BigInteger.valueOf(1234));
+
+    return longRanges().map(range -> Ranges.map(Ranges.boxed(range), BigInteger::valueOf))
+        .flatMap(range -> multipliers.stream()
+            .map(multiplier -> Ranges.map(range, (BigInteger bound) -> bound.multiply(multiplier))));
   }
 
   private static Stream<Range<BigDecimal>> bigDecimalRanges() {
-    return doubleRanges().map(range -> Ranges.map(Ranges.boxed(range), BigDecimal::valueOf));
+    ImmutableSet<BigDecimal> multipliers = ImmutableSet.of(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.valueOf(1234),
+        BigDecimal.valueOf(1e-1), BigDecimal.valueOf(1e-5), BigDecimal.valueOf(1e-12));
+
+    return doubleRanges().map(range -> Ranges.map(Ranges.boxed(range), BigDecimal::valueOf))
+        .flatMap(range -> multipliers.stream()
+            .map(multiplier -> Ranges.map(range, (BigDecimal bound) -> bound.multiply(multiplier))));
   }
 
   private static Stream<Generator<Integer>> integerGens() {
