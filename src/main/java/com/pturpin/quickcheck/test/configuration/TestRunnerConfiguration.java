@@ -5,7 +5,7 @@ package com.pturpin.quickcheck.test.configuration;
  */
 public interface TestRunnerConfiguration {
 
-  int getNbRun();
+  long getNbRun();
 
   boolean acceptSkipped();
 

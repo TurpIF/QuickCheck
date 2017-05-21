@@ -26,8 +26,8 @@ public class TestRunnerConfigurations {
     TestConfiguration.Skipped skippedAnnot = method.getAnnotation(TestConfiguration.Skipped.class);
     TestConfiguration.Random randomAnnot = method.getAnnotation(TestConfiguration.Random.class);
 
-    int nbRun = nbRunAnnot != null ? nbRunAnnot.value() : baseConfig.getNbRun();
-    boolean acceptSkipped = skippedAnnot != null ? skippedAnnot.accepted() : baseConfig.acceptSkipped();
+    long nbRun = nbRunAnnot != null ? nbRunAnnot.value() : baseConfig.getNbRun();
+    boolean acceptSkipped = skippedAnnot != null ? skippedAnnot.accept() : baseConfig.acceptSkipped();
     RandomFactory randomFactory = randomAnnot != null ? Reflections.newFactory(randomAnnot.value()) : baseConfig.getRandomFactory();
 
     return new TestRunnerConfigurationImpl(nbRun, acceptSkipped, randomFactory, baseConfig.getRegistryFactory());
@@ -40,7 +40,7 @@ public class TestRunnerConfigurations {
 
   private static TestRunnerConfiguration reflectiveConfiguration(TestConfiguration config) throws ReflectiveOperationException {
     checkNotNull(config);
-    int nbRun = config.nbRun() == TestConfiguration.NONE_NB_RUN ? DEFAULT_NB_RUN : config.nbRun();
+    long nbRun = config.nbRun() == TestConfiguration.NONE_NB_RUN ? DEFAULT_NB_RUN : config.nbRun();
     RandomFactory randomFactory = config.random() == TestConfiguration.NoneRandomFactory.class ? DEFAULT_RANDOM_FACTORY : Reflections.newFactory(config.random());
     RegistryFactory registryFactory = config.registry() == TestConfiguration.NoneRegistryFactory.class ? DEFAULT_REGISTRY_FACTORY : Reflections.newFactory(config.registry());
 
@@ -53,12 +53,12 @@ public class TestRunnerConfigurations {
 
   private static final class TestRunnerConfigurationImpl implements TestRunnerConfiguration {
 
-    private final int nbRun;
+    private final long nbRun;
     private final boolean acceptSkipped;
     private final RandomFactory random;
     private final RegistryFactory registry;
 
-    private TestRunnerConfigurationImpl(int nbRun, boolean acceptSkipped, RandomFactory random, RegistryFactory registry) {
+    private TestRunnerConfigurationImpl(long nbRun, boolean acceptSkipped, RandomFactory random, RegistryFactory registry) {
       checkArgument(nbRun > 0);
       this.nbRun = nbRun;
       this.acceptSkipped = acceptSkipped;
@@ -67,7 +67,7 @@ public class TestRunnerConfigurations {
     }
 
     @Override
-    public int getNbRun() {
+    public long getNbRun() {
       return nbRun;
     }
 
@@ -84,6 +84,32 @@ public class TestRunnerConfigurations {
     @Override
     public RegistryFactory getRegistryFactory() {
       return registry;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      TestRunnerConfigurationImpl that = (TestRunnerConfigurationImpl) o;
+
+      return nbRun == that.nbRun
+          && acceptSkipped == that.acceptSkipped
+          && random.equals(that.random)
+          && registry.equals(that.registry);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = (int) (nbRun ^ (nbRun >>> 32));
+      result = 31 * result + (acceptSkipped ? 1 : 0);
+      result = 31 * result + random.hashCode();
+      result = 31 * result + registry.hashCode();
+      return result;
     }
   }
 }

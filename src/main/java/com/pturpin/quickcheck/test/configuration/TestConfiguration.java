@@ -16,7 +16,7 @@ import static com.pturpin.quickcheck.test.configuration.TestRunnerConfigurations
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TestConfiguration {
 
-  int nbRun() default NONE_NB_RUN;
+  long nbRun() default NONE_NB_RUN;
   boolean acceptSkipped() default DEFAULT_ACCEPT_SKIPPED;
   Class<? extends RandomFactory> random() default NoneRandomFactory.class;
   Class<? extends RegistryFactory> registry() default NoneRegistryFactory.class;
@@ -30,7 +30,7 @@ public @interface TestConfiguration {
   @Target(ElementType.METHOD)
   @Retention(RetentionPolicy.RUNTIME)
   @interface Skipped {
-    boolean accepted();
+    boolean accept();
   }
 
   @Target(ElementType.METHOD)
@@ -39,7 +39,7 @@ public @interface TestConfiguration {
     Class<? extends RandomFactory> value();
   }
 
-  int NONE_NB_RUN = -1;
+  long NONE_NB_RUN = -1;
 
   final class NoneRandomFactory implements RandomFactory {
     @Override
