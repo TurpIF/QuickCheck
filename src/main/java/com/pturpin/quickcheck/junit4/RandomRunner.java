@@ -97,22 +97,14 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     }
 
     Generator<Object[]> parametersGen = generators.parametersGen(reflectMethod).get();
-    TestRunner runner = TestRunners.randomRunner(reflectMethod, test, parametersGen, methodConfiguration.getNbRun(), methodConfiguration.getRandomFactory()::create);
+    TestRunner randomRunner = TestRunners.randomRunner(reflectMethod, test, parametersGen, methodConfiguration.getNbRun(), methodConfiguration.getRandomFactory()::create);
+    TestRunner runner = methodConfiguration.acceptSkipped() ? randomRunner : TestRunners.failingSkipped(randomRunner);
 
     return LambdaStatement.of(() -> {
       TestResult result = runner.run();
       if (result.getFailureCause().isPresent()) {
         throw result.getFailureCause().get();
       }
-      if (!methodConfiguration.acceptSkipped() && TestResult.TestState.SKIPPED.equals(result.getState())) {
-        throw new SkippedTestError(reflectMethod);
-      }
     });
-  }
-
-  private static final class SkippedTestError extends AssertionError {
-    SkippedTestError(Method method) {
-      super("Method test " + method + " was skipped");
-    }
   }
 }

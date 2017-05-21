@@ -13,6 +13,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Created by turpif on 27/04/17.
@@ -29,7 +30,24 @@ public final class TestRunners {
   }
 
   public static TestRunner randomRunner(Method method, Object instance, Generator<Object[]> parametersGen, long nbRun, Supplier<Random> random) {
-    return new RandomTestRunner(methodRunner(method, instance), nbRun, parametersGen, random);
+    Function<Object[], TestRunner> factory = methodRunner(method, instance);
+    RandomTestRunner randomRunner = new RandomTestRunner(factory, nbRun, parametersGen, random);
+    return namedRunner("Randomized(" + method.getName() + ")", randomRunner);
+  }
+
+  public static TestRunner failingSkipped(TestRunner runner) {
+    checkNotNull(runner);
+    return namedRunner("FailingSkipped(" + runner + ")", () -> {
+      TestResult result = runner.run();
+      if (result.getState() == TestResult.TestState.SKIPPED) {
+        return TestResult.failure(new SkippedTestError(runner.toString()));
+      }
+      return result;
+    });
+  }
+
+  public static TestRunner namedRunner(String name, TestRunner runner) {
+    return new NamedTestRunner(runner, name);
   }
 
   public static Function<Object[], TestRunner> staticMethodRunner(Method method) {
@@ -64,5 +82,31 @@ public final class TestRunners {
         return TestResult.failure(e.getCause());
       }
     };
+  }
+
+  private static final class NamedTestRunner implements TestRunner {
+    private final TestRunner delegate;
+    private final String name;
+
+    private NamedTestRunner(TestRunner delegate, String name) {
+      this.delegate = checkNotNull(delegate);
+      this.name = checkNotNull(name);
+    }
+
+    @Override
+    public TestResult run() {
+      return delegate.run();
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
+  }
+
+  private static final class SkippedTestError extends AssertionError {
+    SkippedTestError(String testName) {
+      super("Test " + testName + " was skipped");
+    }
   }
 }
