@@ -44,13 +44,17 @@ public class TestRunnerConfigurations {
     return annotation == null ? Optional.empty() : Optional.of(reflectiveConfiguration(annotation));
   }
 
-  private static TestRunnerConfiguration reflectiveConfiguration(TestConfiguration config) throws ReflectiveOperationException {
+  public static TestRunnerConfiguration reflectiveConfiguration(TestConfiguration config) throws ReflectiveOperationException {
     checkNotNull(config);
     long nbRun = config.nbRun() == TestConfiguration.NONE_NB_RUN ? DEFAULT_NB_RUN : config.nbRun();
     RandomFactory randomFactory = config.random() == TestConfiguration.NoneRandomFactory.class ? DEFAULT_RANDOM_FACTORY : Reflections.newFactory(config.random());
     RegistryFactory registryFactory = config.registry() == TestConfiguration.NoneRegistryFactory.class ? DEFAULT_REGISTRY_FACTORY : Reflections.newFactory(config.registry());
 
     return new TestRunnerConfigurationImpl(nbRun, config.acceptSkipped(), randomFactory, registryFactory);
+  }
+
+  public static TestRunnerConfiguration configuration(long nbRun, boolean acceptSkipped, RandomFactory random, RegistryFactory registry) {
+    return new TestRunnerConfigurationImpl(nbRun, acceptSkipped, random, registry);
   }
 
   public static TestRunnerConfiguration defaultConfiguration() {

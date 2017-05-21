@@ -13,4 +13,8 @@ public final class Checked {
     T get() throws X;
   }
 
+  public interface CheckedConsumer<T, X extends Exception> {
+    void accept(T value) throws X;
+  }
+
 }

@@ -9,7 +9,7 @@ import static com.pturpin.quickcheck.generator.Numbers.doubleGen;
 /**
  * Created by turpif on 28/04/17.
  */
-final class DefaultRegistryFactory implements RegistryFactory {
+public final class DefaultRegistryFactory implements RegistryFactory {
 
   public DefaultRegistryFactory() {
     // nothing
