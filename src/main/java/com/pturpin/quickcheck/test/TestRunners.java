@@ -37,8 +37,16 @@ public final class TestRunners {
   }
 
   public static Function<Object[], TestRunner> methodRunner(Method method, Object instance) {
-    checkArgument(instance != null ||  Modifier.isStatic(method.getModifiers()),
-        "Impossible to invoke a non-static method without instance : %s", method);
+    checkArgument(instance != null || Modifier.isStatic(method.getModifiers()),
+        "Impossible to invoke the non-static method without instance: %s", method);
+    checkArgument(instance == null || !Modifier.isStatic(method.getModifiers()),
+        "Static methods should not be invoked with an instance object: %s", method);
+    checkArgument(instance == null || instance.getClass().equals(method.getDeclaringClass()),
+        "Instance class should be equal to declaring class of method: %s", method);
+    checkArgument(Modifier.isPublic(method.getModifiers()),
+        "Impossible to invoke the non-public method: %s", method);
+    checkArgument(void.class.equals(method.getReturnType()) || TestResult.class.equals(method.getReturnType()),
+        "Method %s should return either void or " + TestResult.class.getSimpleName(), method);
 
     Class<?> returnType = method.getReturnType();
     boolean useReturn = TestResult.class.isAssignableFrom(returnType);

@@ -18,6 +18,8 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
+import static com.pturpin.quickcheck.assertion.Assertions.assertThrow;
+
 /**
  * Created by pturpin on 10/05/2017.
  */
@@ -235,17 +237,5 @@ public class Numbers_UT {
     for (int i = 0; i < NB_SAMPLES; i++) {
       checker.accept(generator.get(random));
     }
-  }
-
-  private static void assertThrow(CheckedSupplier<?, ?> supplier) {
-    try {
-      supplier.get();
-      Assert.fail();
-    } catch (Exception ignored) {
-    }
-  }
-
-  public interface CheckedSupplier<T, X extends Exception> {
-    T get() throws X;
   }
 }
