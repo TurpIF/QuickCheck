@@ -25,6 +25,7 @@ public class TestRunnerConfiguration_UT {
   private Method withRunConfigMethod;
   private Method withAcceptSkippedConfigMethod;
   private Method withRandomConfigMethod;
+  private Method withRegistryConfigMethod;
 
   @Before
   public void before() throws NoSuchMethodException {
@@ -32,6 +33,7 @@ public class TestRunnerConfiguration_UT {
     withRunConfigMethod = TestRunnerConfiguration_UT.class.getDeclaredMethod("withRunConfigMethod");
     withAcceptSkippedConfigMethod = TestRunnerConfiguration_UT.class.getDeclaredMethod("withAcceptSkippedConfigMethod");
     withRandomConfigMethod = TestRunnerConfiguration_UT.class.getDeclaredMethod("withRandomConfigMethod");
+    withRegistryConfigMethod = TestRunnerConfiguration_UT.class.getDeclaredMethod("withRegistryConfigMethod");
   }
 
   @Test
@@ -86,6 +88,16 @@ public class TestRunnerConfiguration_UT {
     Assert.assertEquals(base.getRegistryFactory(), methodConfig.getRegistryFactory());
   }
 
+  @Test
+  public void testMethodConfigWithRegistryConfig() throws Exception {
+    TestRunnerConfiguration base = reflectiveConfiguration(WithConfiguration.class).get();
+    TestRunnerConfiguration methodConfig = reflectiveMethodConfiguration(withRegistryConfigMethod, base);
+    Assert.assertEquals(base.getNbRun(), methodConfig.getNbRun());
+    Assert.assertEquals(base.acceptSkipped(), methodConfig.acceptSkipped());
+    Assert.assertEquals(base.getRandomFactory(), methodConfig.getRandomFactory());
+    Assert.assertEquals(DefaultRegistryFactory.class, methodConfig.getRegistryFactory().getClass());
+  }
+
   private static void withoutConfigMethod() {}
 
   @TestConfiguration.NbRun(1024)
@@ -96,6 +108,9 @@ public class TestRunnerConfiguration_UT {
 
   @TestConfiguration.Random(DefaultRandomFactory.class)
   private static void withRandomConfigMethod() {}
+
+  @TestConfiguration.Registry(DefaultRegistryFactory.class)
+  private static void withRegistryConfigMethod() {}
 
   private static final class WithoutConfiguration {}
 

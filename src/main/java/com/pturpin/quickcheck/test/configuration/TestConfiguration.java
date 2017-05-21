@@ -1,7 +1,5 @@
 package com.pturpin.quickcheck.test.configuration;
 
-import com.pturpin.quickcheck.registry.Registry;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -39,6 +37,12 @@ public @interface TestConfiguration {
     Class<? extends RandomFactory> value();
   }
 
+  @Target(ElementType.METHOD)
+  @Retention(RetentionPolicy.RUNTIME)
+  @interface Registry {
+    Class<? extends RegistryFactory> value();
+  }
+
   long NONE_NB_RUN = -1;
 
   final class NoneRandomFactory implements RandomFactory {
@@ -50,7 +54,7 @@ public @interface TestConfiguration {
 
   final class NoneRegistryFactory implements RegistryFactory {
     @Override
-    public Registry create() {
+    public com.pturpin.quickcheck.registry.Registry create() {
       throw new UnsupportedOperationException();
     }
   }

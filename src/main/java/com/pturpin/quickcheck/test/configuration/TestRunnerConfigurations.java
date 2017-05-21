@@ -25,12 +25,18 @@ public class TestRunnerConfigurations {
     TestConfiguration.NbRun nbRunAnnot = method.getAnnotation(TestConfiguration.NbRun.class);
     TestConfiguration.Skipped skippedAnnot = method.getAnnotation(TestConfiguration.Skipped.class);
     TestConfiguration.Random randomAnnot = method.getAnnotation(TestConfiguration.Random.class);
+    TestConfiguration.Registry registryAnnot = method.getAnnotation(TestConfiguration.Registry.class);
 
     long nbRun = nbRunAnnot != null ? nbRunAnnot.value() : baseConfig.getNbRun();
     boolean acceptSkipped = skippedAnnot != null ? skippedAnnot.accept() : baseConfig.acceptSkipped();
-    RandomFactory randomFactory = randomAnnot != null ? Reflections.newFactory(randomAnnot.value()) : baseConfig.getRandomFactory();
+    RandomFactory randomFactory = randomAnnot != null
+        ? Reflections.newFactory(randomAnnot.value())
+        : baseConfig.getRandomFactory();
+    RegistryFactory registryFactory = registryAnnot != null
+        ? Reflections.newFactory(registryAnnot.value())
+        : baseConfig.getRegistryFactory();
 
-    return new TestRunnerConfigurationImpl(nbRun, acceptSkipped, randomFactory, baseConfig.getRegistryFactory());
+    return new TestRunnerConfigurationImpl(nbRun, acceptSkipped, randomFactory, registryFactory);
   }
 
   public static Optional<TestRunnerConfiguration> reflectiveConfiguration(Class<?> klass) throws ReflectiveOperationException {
