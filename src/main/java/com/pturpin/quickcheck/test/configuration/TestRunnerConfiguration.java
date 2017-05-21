@@ -13,4 +13,9 @@ public interface TestRunnerConfiguration {
 
   RegistryFactory getRegistryFactory();
 
+  @FunctionalInterface
+  interface TestConfigurationMapper {
+    TestRunnerConfiguration map(TestRunnerConfiguration baseConfig);
+  }
+
 }

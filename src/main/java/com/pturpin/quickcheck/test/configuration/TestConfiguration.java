@@ -22,7 +22,7 @@ public @interface TestConfiguration {
   @Target(ElementType.METHOD)
   @Retention(RetentionPolicy.RUNTIME)
   @interface NbRun {
-    int value();
+    long value();
   }
 
   @Target(ElementType.METHOD)

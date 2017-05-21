@@ -1,6 +1,7 @@
 package com.pturpin.quickcheck.test.configuration;
 
 import com.pturpin.quickcheck.base.Reflections;
+import com.pturpin.quickcheck.test.configuration.TestRunnerConfiguration.TestConfigurationMapper;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -19,24 +20,32 @@ public class TestRunnerConfigurations {
   private static final RegistryFactory DEFAULT_REGISTRY_FACTORY = new DefaultRegistryFactory();
 
   public static TestRunnerConfiguration reflectiveMethodConfiguration(Method method, TestRunnerConfiguration baseConfig) throws ReflectiveOperationException {
+    return reflectiveMethodMapper(method).map(baseConfig);
+  }
+
+  public static TestConfigurationMapper reflectiveMethodMapper(Method method) throws ReflectiveOperationException {
     checkNotNull(method);
-    checkNotNull(baseConfig);
 
     TestConfiguration.NbRun nbRunAnnot = method.getAnnotation(TestConfiguration.NbRun.class);
     TestConfiguration.Skipped skippedAnnot = method.getAnnotation(TestConfiguration.Skipped.class);
     TestConfiguration.Random randomAnnot = method.getAnnotation(TestConfiguration.Random.class);
     TestConfiguration.Registry registryAnnot = method.getAnnotation(TestConfiguration.Registry.class);
 
-    long nbRun = nbRunAnnot != null ? nbRunAnnot.value() : baseConfig.getNbRun();
-    boolean acceptSkipped = skippedAnnot != null ? skippedAnnot.accept() : baseConfig.acceptSkipped();
-    RandomFactory randomFactory = randomAnnot != null
-        ? Reflections.newFactory(randomAnnot.value())
-        : baseConfig.getRandomFactory();
-    RegistryFactory registryFactory = registryAnnot != null
-        ? Reflections.newFactory(registryAnnot.value())
-        : baseConfig.getRegistryFactory();
+    if (nbRunAnnot == null && skippedAnnot == null && randomAnnot == null && registryAnnot == null) {
+      return configuration -> configuration;
+    }
 
-    return new TestRunnerConfigurationImpl(nbRun, acceptSkipped, randomFactory, registryFactory);
+    RandomFactory randomFactory = randomAnnot == null ? null : Reflections.newFactory(randomAnnot.value());
+    RegistryFactory registryFactory = registryAnnot == null ? null : Reflections.newFactory(registryAnnot.value());
+
+    return baseConfig -> {
+      checkNotNull(baseConfig);
+      return new TestRunnerConfigurationImpl(
+          nbRunAnnot == null ? baseConfig.getNbRun() : nbRunAnnot.value(),
+          skippedAnnot == null ? baseConfig.acceptSkipped() : skippedAnnot.accept(),
+          randomFactory == null ? baseConfig.getRandomFactory() : randomFactory,
+          registryFactory == null ? baseConfig.getRegistryFactory() : registryFactory);
+    };
   }
 
   public static Optional<TestRunnerConfiguration> reflectiveConfiguration(Class<?> klass) throws ReflectiveOperationException {

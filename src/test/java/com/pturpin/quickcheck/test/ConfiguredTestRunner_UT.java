@@ -1,14 +1,10 @@
 package com.pturpin.quickcheck.test;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.pturpin.quickcheck.functional.Checked.CheckedConsumer;
 import com.pturpin.quickcheck.generator.Generator;
-import com.pturpin.quickcheck.generator.Numbers;
 import com.pturpin.quickcheck.identifier.ClassIdentifier;
 import com.pturpin.quickcheck.junit4.RandomRunner;
-import com.pturpin.quickcheck.registry.Registries;
-import com.pturpin.quickcheck.registry.Registry;
+import com.pturpin.quickcheck.test.ConfiguredTestRunner.*;
 import com.pturpin.quickcheck.test.configuration.*;
 import org.junit.Assert;
 import org.junit.Test;
@@ -19,9 +15,10 @@ import org.junit.runner.RunWith;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static com.pturpin.quickcheck.test.ConfiguredTestRunner.*;
 
 /**
  * Created by turpif on 21/05/17.
@@ -60,16 +57,6 @@ public class ConfiguredTestRunner_UT {
     .forEach(unchecked(ConfiguredTestRunner_UT::checkClassConfiguration));
   }
 
-  private static <T, X extends Exception> Consumer<T> unchecked(CheckedConsumer<T, X> consumer) {
-    return value -> {
-      try {
-        consumer.accept(value);
-      } catch (Exception e) {
-        throw new AssertionError(e);
-      }
-    };
-  }
-
   @Test
   public void testUpdatingAnnotation() throws Exception {
     TestRunnerConfiguration settedConfig = TestRunnerConfigurations.defaultConfiguration();
@@ -94,7 +81,7 @@ public class ConfiguredTestRunner_UT {
 
   @RunWith(RandomRunner.class)
   public static final class WithoutAnnotationTests {
-    static State state;
+    static State state = new State();
     @Test public void setCounter() {
       state.counter++;
     }
@@ -112,7 +99,7 @@ public class ConfiguredTestRunner_UT {
   @RunWith(RandomRunner.class)
   @TestConfiguration
   public static final class WithAnnotationTests {
-    static State state;
+    static State state = new State();
     @Test public void setCounter() {
       state.counter++;
     }
@@ -127,49 +114,11 @@ public class ConfiguredTestRunner_UT {
     }
   }
 
-  static final class EmptyRegistryFactory implements RegistryFactory {
-    public EmptyRegistryFactory() {}
-    @Override  public Registry create() {
-      return Registries.empty();
-    }
-  }
-
-  static final class SpecialDoubleRegistryFactory implements RegistryFactory {
-    public SpecialDoubleRegistryFactory() {}
-    @Override  public Registry create() {
-      return Registries.forMap(ImmutableMap.of(
-          new ClassIdentifier<>(double.class), Numbers.specialDouble()
-      ));
-    }
-  }
-
-  static final class RandomSeed1Factory implements RandomFactory {
-    public RandomSeed1Factory() {}
-    @Override public Random create() {
-      return new Random(1);
-    }
-  }
-
-  static final class RandomSeed2Factory implements RandomFactory {
-    public RandomSeed2Factory() {}
-    @Override public Random create() {
-      return new Random(2);
-    }
-  }
-
   private static void checkClassConfiguration(TestRunnerConfiguration config) throws Exception {
     updateAnnotationValue(config);
     checkClassConfiguration(WithAnnotationTests.class, config,
         () -> WithAnnotationTests.state = new State(),
         () -> WithAnnotationTests.state);
-  }
-
-  private static void checkClassConfiguration(Class<?> klass,
-      Runnable stateInit,
-      Supplier<State> stateGetter) throws ReflectiveOperationException {
-    TestConfiguration annotConfig = klass.getAnnotation(TestConfiguration.class);
-    TestRunnerConfiguration config = TestRunnerConfigurations.reflectiveConfiguration(annotConfig);
-    checkClassConfiguration(klass, config, stateInit, stateGetter);
   }
 
   private static void checkClassConfiguration(Class<?> klass,
@@ -209,6 +158,10 @@ public class ConfiguredTestRunner_UT {
         .sorted()
         .collect(Collectors.toList());
     Assert.assertEquals(expectedFailedMethodNames, failedMethodNames);
+
+    if (expectedFailedMethodNames.isEmpty()) {
+      Assert.assertTrue(result.wasSuccessful());
+    }
   }
 
   private static void updateAnnotationValue(TestRunnerConfiguration config) throws Exception {
@@ -245,17 +198,5 @@ public class ConfiguredTestRunner_UT {
       }
     };
     annotationsMap.put(TestConfiguration.class, newAnnot);
-  }
-
-  private static final class State {
-    long counter;
-    boolean firstDoubleInitialized;
-    double firstDouble;
-
-    private State() {
-      this.counter = 0;
-      this.firstDoubleInitialized = false;
-      this.firstDouble = Double.NaN;
-    }
   }
 }
