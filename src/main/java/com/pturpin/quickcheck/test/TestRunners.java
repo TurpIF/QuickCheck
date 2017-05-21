@@ -3,6 +3,7 @@ package com.pturpin.quickcheck.test;
 import com.pturpin.quickcheck.generator.Generator;
 import com.pturpin.quickcheck.generator.ReflectiveGenerators;
 import com.pturpin.quickcheck.registry.Registry;
+import com.pturpin.quickcheck.test.configuration.TestRunnerConfiguration;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -27,6 +28,23 @@ public final class TestRunners {
     return optGenerator
         .map(parametersGen -> randomRunner(method, instance, parametersGen, nbRun, random))
         .orElseThrow(UnsupportedOperationException::new);
+  }
+
+  public static TestRunner randomRunner(Method method, Object instance, TestRunnerConfiguration configuration) throws NoRegisteredGenerator {
+    Function<Object[], TestRunner> factory = methodRunner(method, instance);
+    Generator<Object[]> parametersGen = fetchParametersGen(method, configuration);
+
+    Supplier<Random> randomFactory = configuration.getRandomFactory()::create;
+    TestRunner randomRunner = new RandomTestRunner(factory, configuration.getNbRun(), parametersGen, randomFactory);
+    TestRunner runner = namedRunner("Randomized(" + method.getName() + ")", randomRunner);
+    return configuration.acceptSkipped() ? runner : failingSkipped(runner);
+  }
+
+  private static Generator<Object[]> fetchParametersGen(Method method, TestRunnerConfiguration configuration) throws NoRegisteredGenerator {
+    Registry registry = configuration.getRegistryFactory().create();
+    ReflectiveGenerators reflectiveGenerators = ReflectiveGenerators.with(registry);
+    return reflectiveGenerators.parametersGen(method)
+        .orElseThrow(() -> new NoRegisteredGenerator(method));
   }
 
   public static TestRunner randomRunner(Method method, Object instance, Generator<Object[]> parametersGen, long nbRun, Supplier<Random> random) {
@@ -101,6 +119,12 @@ public final class TestRunners {
     @Override
     public String toString() {
       return name;
+    }
+  }
+
+  public static final class NoRegisteredGenerator extends Exception {
+    NoRegisteredGenerator(Method method) {
+      super("No registered generator for all parameters of " + method);
     }
   }
 

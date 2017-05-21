@@ -1,7 +1,5 @@
 package com.pturpin.quickcheck.junit4;
 
-import com.pturpin.quickcheck.generator.Generator;
-import com.pturpin.quickcheck.generator.ReflectiveGenerators;
 import com.pturpin.quickcheck.test.TestResult;
 import com.pturpin.quickcheck.test.TestRunner;
 import com.pturpin.quickcheck.test.TestRunners;
@@ -15,8 +13,6 @@ import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.Statement;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -24,7 +20,6 @@ import java.util.List;
  */
 public class RandomRunner extends BlockJUnit4ClassRunner {
 
-  private final ReflectiveGenerators generators;
   private final TestRunnerConfiguration configuration;
 
   public RandomRunner(Class<?> klass) throws InitializationError {
@@ -36,35 +31,11 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     } catch (ReflectiveOperationException e) {
       throw new InitializationError(e);
     }
-
-    this.generators = ReflectiveGenerators.with(configuration.getRegistryFactory().create());
-
-    validateGeneratorErrors();
   }
 
   RandomRunner(Class<?> klass, TestRunnerConfiguration configuration) throws InitializationError {
     super(klass);
     this.configuration = configuration;
-    this.generators = ReflectiveGenerators.with(configuration.getRegistryFactory().create());
-
-    validateGeneratorErrors();
-  }
-
-  private void validateGeneratorErrors() throws InitializationError{
-    List<Throwable> errors = new ArrayList<>();
-    getTestClass().getAnnotatedMethods(Test.class)
-        .forEach(method -> validateParametersInRegistry(errors, method));
-
-    if (!errors.isEmpty()) {
-      throw new InitializationError(errors);
-    }
-  }
-
-  private void validateParametersInRegistry(List<Throwable> errors, FrameworkMethod method) {
-    Arrays.stream(method.getMethod().getParameters())
-        .filter(parameter -> !generators.parameterGen(parameter).isPresent())
-        .forEach(parameter -> errors.add(new Exception(
-            "No registered generator for parameter " + parameter + " in " + method)));
   }
 
   @Override
@@ -88,17 +59,13 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
   @Override
   protected Statement methodInvoker(FrameworkMethod method, Object test) {
     Method reflectMethod = method.getMethod();
-
-    TestRunnerConfiguration methodConfiguration;
+    TestRunner runner;
     try {
-      methodConfiguration = TestRunnerConfigurations.reflectiveMethodConfiguration(reflectMethod, this.configuration);
-    } catch (ReflectiveOperationException e) {
+      TestRunnerConfiguration methodConfiguration = TestRunnerConfigurations.reflectiveMethodConfiguration(reflectMethod, this.configuration);
+      runner = TestRunners.randomRunner(reflectMethod, test, methodConfiguration);
+    } catch (ReflectiveOperationException | TestRunners.NoRegisteredGenerator e) {
       return new Fail(e);
     }
-
-    Generator<Object[]> parametersGen = generators.parametersGen(reflectMethod).get();
-    TestRunner randomRunner = TestRunners.randomRunner(reflectMethod, test, parametersGen, methodConfiguration.getNbRun(), methodConfiguration.getRandomFactory()::create);
-    TestRunner runner = methodConfiguration.acceptSkipped() ? randomRunner : TestRunners.failingSkipped(randomRunner);
 
     return LambdaStatement.of(() -> {
       TestResult result = runner.run();
