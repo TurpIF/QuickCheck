@@ -47,6 +47,30 @@ public final class TestResult {
     return state;
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    TestResult that = (TestResult) o;
+    if (cause != null ? !cause.equals(that.cause) : that.cause != null) {
+      return false;
+    }
+    return state == that.state;
+
+  }
+
+  @Override
+  public int hashCode() {
+    int result = cause != null ? cause.hashCode() : 0;
+    result = 31 * result + state.hashCode();
+    return result;
+  }
+
   public enum TestState {
     OK,
     FAILURE,

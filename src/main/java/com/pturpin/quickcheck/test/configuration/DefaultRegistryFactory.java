@@ -1,4 +1,4 @@
-package com.pturpin.quickcheck.junit4;
+package com.pturpin.quickcheck.test.configuration;
 
 import com.pturpin.quickcheck.base.Ranges;
 import com.pturpin.quickcheck.base.Ranges.Range;
@@ -14,7 +14,7 @@ import static com.pturpin.quickcheck.generator.Numbers.*;
 /**
  * Created by turpif on 28/04/17.
  */
-final class DefaultRegistryFactory implements RandomRunner.RegistryFactory {
+public final class DefaultRegistryFactory implements RegistryFactory {
 
   public DefaultRegistryFactory() {
     // nothing

@@ -1,7 +1,7 @@
 package com.pturpin.quickcheck.junit4;
 
-import com.pturpin.quickcheck.junit4.RandomRunner.RandomRunnerConfiguration;
 import com.pturpin.quickcheck.test.TestResult;
+import com.pturpin.quickcheck.test.configuration.TestConfiguration;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.JUnitCore;
@@ -16,21 +16,30 @@ import java.util.stream.Collectors;
  * Created by pturpin on 15/05/2017.
  */
 @RunWith(RandomRunner.class)
-@RandomRunnerConfiguration(nbRun = TransparentRandomRunner_UT.NB_RUN)
+@TestConfiguration(nbRun = TransparentRandomRunner_UT.NB_RUN)
 public class TransparentRandomRunner_UT {
 
   static final int NB_RUN = 10;
   private static int nonVoidTestMethodShouldBeCalledAsConfiguredCounter = 0;
   private static int testMethodWithParametersShouldBeCalledAsConfiguredCounter = 0;
-  private static boolean wasInvoked = false;
 
   @Rule
   public final ExpectedException exception = ExpectedException.none();
 
   @Test
   public void voidTestMethodWithoutParametersShouldBeCalledOnceAsNormalJUnitTest() {
-    Assert.assertFalse(wasInvoked);
-    wasInvoked = true;
+    NotConfiguredTestShouldBeCalledOnceAsNormalJUnitTest.wasInvoked = false;
+    JUnitCore junit = new JUnitCore();
+    Result result = junit.run(NotConfiguredTestShouldBeCalledOnceAsNormalJUnitTest.class);
+    Assert.assertTrue(result.wasSuccessful());
+  }
+
+  public static final class NotConfiguredTestShouldBeCalledOnceAsNormalJUnitTest {
+    private static boolean wasInvoked = false;
+    @Test public void test() {
+      Assert.assertFalse(wasInvoked);
+      wasInvoked = true;
+    }
   }
 
   @Test
@@ -79,6 +88,7 @@ public class TransparentRandomRunner_UT {
   }
 
   @Test
+  @TestConfiguration.NbRun(1)
   public void afterAndBeforeClassShouldBeCalled() throws InitializationError {
     JUnitCore junit = new JUnitCore();
 
