@@ -32,7 +32,7 @@ public class RandomTestRunner implements TestRunner {
   @Override
   public TestResult run() {
     Random random = randomSupplier.get();
-    long nbSkipped = 0;
+    TestResult result = TestResult.empty();
 
     for (long i = 0; i < nbRun; i++) {
       // Don't check if sizeof arguments is what runnerFactory expect.
@@ -46,11 +46,9 @@ public class RandomTestRunner implements TestRunner {
       // End after the first failure
       if (TestState.FAILURE.equals(status.getState())) {
         return status;
-      } else if (TestState.SKIPPED.equals(status.getState())) {
-        nbSkipped++;
       }
+      result = TestResult.merge(result, status);
     }
-
-    return nbSkipped == nbRun ? TestResult.skipped() : TestResult.ok();
+    return result;
   }
 }

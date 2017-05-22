@@ -7,7 +7,7 @@ public interface TestRunnerConfiguration {
 
   long getNbRun();
 
-  boolean acceptSkipped();
+  double acceptSkipped();
 
   RandomFactory getRandomFactory();
 

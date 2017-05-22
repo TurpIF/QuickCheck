@@ -4,6 +4,7 @@ import com.pturpin.quickcheck.base.Reflections;
 import com.pturpin.quickcheck.test.configuration.TestRunnerConfiguration.TestConfigurationMapper;
 
 import java.lang.reflect.Method;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -15,7 +16,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class TestRunnerConfigurations {
 
   private static final int DEFAULT_NB_RUN = 100;
-  static final boolean DEFAULT_ACCEPT_SKIPPED = false;
+  static final double DEFAULT_ACCEPT_SKIPPED = 0.0;
   private static final RandomFactory DEFAULT_RANDOM_FACTORY = new DefaultRandomFactory();
   private static final RegistryFactory DEFAULT_REGISTRY_FACTORY = new DefaultRegistryFactory();
 
@@ -42,7 +43,7 @@ public class TestRunnerConfigurations {
       checkNotNull(baseConfig);
       return new TestRunnerConfigurationImpl(
           nbRunAnnot == null ? baseConfig.getNbRun() : nbRunAnnot.value(),
-          skippedAnnot == null ? baseConfig.acceptSkipped() : skippedAnnot.accept(),
+          skippedAnnot == null ? baseConfig.acceptSkipped() : skippedAnnot.value(),
           randomFactory == null ? baseConfig.getRandomFactory() : randomFactory,
           registryFactory == null ? baseConfig.getRegistryFactory() : registryFactory);
     };
@@ -62,7 +63,7 @@ public class TestRunnerConfigurations {
     return new TestRunnerConfigurationImpl(nbRun, config.acceptSkipped(), randomFactory, registryFactory);
   }
 
-  public static TestRunnerConfiguration configuration(long nbRun, boolean acceptSkipped, RandomFactory random, RegistryFactory registry) {
+  public static TestRunnerConfiguration configuration(long nbRun, double acceptSkipped, RandomFactory random, RegistryFactory registry) {
     return new TestRunnerConfigurationImpl(nbRun, acceptSkipped, random, registry);
   }
 
@@ -81,11 +82,11 @@ public class TestRunnerConfigurations {
   private static final class TestRunnerConfigurationImpl implements TestRunnerConfiguration {
 
     private final long nbRun;
-    private final boolean acceptSkipped;
+    private final double acceptSkipped;
     private final RandomFactory random;
     private final RegistryFactory registry;
 
-    private TestRunnerConfigurationImpl(long nbRun, boolean acceptSkipped, RandomFactory random, RegistryFactory registry) {
+    private TestRunnerConfigurationImpl(long nbRun, double acceptSkipped, RandomFactory random, RegistryFactory registry) {
       checkArgument(nbRun > 0);
       this.nbRun = nbRun;
       this.acceptSkipped = acceptSkipped;
@@ -99,7 +100,7 @@ public class TestRunnerConfigurations {
     }
 
     @Override
-    public boolean acceptSkipped() {
+    public double acceptSkipped() {
       return acceptSkipped;
     }
 
@@ -132,11 +133,7 @@ public class TestRunnerConfigurations {
 
     @Override
     public int hashCode() {
-      int result = (int) (nbRun ^ (nbRun >>> 32));
-      result = 31 * result + (acceptSkipped ? 1 : 0);
-      result = 31 * result + random.hashCode();
-      result = 31 * result + registry.hashCode();
-      return result;
+      return Objects.hash(nbRun, acceptSkipped, random, registry);
     }
   }
 }
