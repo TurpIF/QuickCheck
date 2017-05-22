@@ -35,7 +35,7 @@ public final class TestRunners {
     Supplier<Random> randomFactory = configuration.getRandomFactory()::create;
     TestRunner randomRunner = new RandomTestRunner(factory, configuration.getNbRun(), parametersGen, randomFactory);
     TestRunner runner = namedRunner("Randomized(" + method.getName() + ")", randomRunner);
-    return configuration.acceptSkipped() ? runner : failingSkipped(runner);
+    return failingSkipped(configuration.acceptSkipped(), runner);
   }
 
   private static Generator<Object[]> fetchParametersGen(Method method, TestRunnerConfiguration configuration) throws NoRegisteredGenerator {
@@ -51,12 +51,16 @@ public final class TestRunners {
     return namedRunner("Randomized(" + method.getName() + ")", randomRunner);
   }
 
-  public static TestRunner failingSkipped(TestRunner runner) {
+  public static TestRunner failingSkipped(double rate, TestRunner runner) {
     checkNotNull(runner);
     return namedRunner("FailingSkipped(" + runner + ")", () -> {
       TestResult result = runner.run();
-      if (result.getState() == TestResult.TestState.SKIPPED) {
-        return TestResult.failure(new SkippedTestError(runner.toString()));
+      if (result.getState() == TestResult.TestState.FAILURE) {
+        return result;
+      }
+      long allowedSkipped = (long) Math.ceil(rate * result.getNbTotal());
+      if ((rate == 0. && result.getNbSkipped() > 0) || (rate != 0. && result.getNbSkipped() >= allowedSkipped)) {
+        return TestResult.failure(new SkippedTestError(runner.toString(), result));
       }
       return result;
     });
@@ -127,8 +131,8 @@ public final class TestRunners {
   }
 
   private static final class SkippedTestError extends AssertionError {
-    SkippedTestError(String testName) {
-      super("Test " + testName + " was skipped");
+    SkippedTestError(String testName, TestResult result) {
+      super("Test " + testName + " was skipped " + result.getNbSkipped() + " times on a total of " + result.getNbTotal() + " runs");
     }
   }
 }

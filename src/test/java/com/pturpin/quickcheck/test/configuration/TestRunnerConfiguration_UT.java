@@ -19,7 +19,7 @@ import static com.pturpin.quickcheck.test.configuration.TestRunnerConfigurations
 public class TestRunnerConfiguration_UT {
 
   private static final long NB_RUN = 1337;
-  private static final boolean ACCEPT_SKIPPED = false;
+  private static final double ACCEPT_SKIPPED = 0.0;
 
   private Method withoutConfigMethod;
   private Method withRunConfigMethod;
@@ -46,7 +46,7 @@ public class TestRunnerConfiguration_UT {
 
     TestRunnerConfiguration config = withAnnot.get();
     Assert.assertEquals(NB_RUN, config.getNbRun());
-    Assert.assertEquals(ACCEPT_SKIPPED, config.acceptSkipped());
+    Assert.assertEquals(ACCEPT_SKIPPED, config.acceptSkipped(), 0);
     Assert.assertEquals(MyRandomFactory.class, config.getRandomFactory().getClass());
     Assert.assertEquals(MyRegistryFactory.class, config.getRegistryFactory().getClass());
   }
@@ -63,7 +63,7 @@ public class TestRunnerConfiguration_UT {
     TestRunnerConfiguration base = reflectiveConfiguration(WithConfiguration.class).get();
     TestRunnerConfiguration methodConfig = reflectiveMethodConfiguration(withRunConfigMethod, base);
     Assert.assertEquals(1024, methodConfig.getNbRun());
-    Assert.assertEquals(base.acceptSkipped(), methodConfig.acceptSkipped());
+    Assert.assertEquals(base.acceptSkipped(), methodConfig.acceptSkipped(), 0);
     Assert.assertEquals(base.getRandomFactory(), methodConfig.getRandomFactory());
     Assert.assertEquals(base.getRegistryFactory(), methodConfig.getRegistryFactory());
   }
@@ -73,7 +73,7 @@ public class TestRunnerConfiguration_UT {
     TestRunnerConfiguration base = reflectiveConfiguration(WithConfiguration.class).get();
     TestRunnerConfiguration methodConfig = reflectiveMethodConfiguration(withAcceptSkippedConfigMethod, base);
     Assert.assertEquals(base.getNbRun(), methodConfig.getNbRun());
-    Assert.assertEquals(true, methodConfig.acceptSkipped());
+    Assert.assertEquals(0.0, methodConfig.acceptSkipped(), 0);
     Assert.assertEquals(base.getRandomFactory(), methodConfig.getRandomFactory());
     Assert.assertEquals(base.getRegistryFactory(), methodConfig.getRegistryFactory());
   }
@@ -83,7 +83,7 @@ public class TestRunnerConfiguration_UT {
     TestRunnerConfiguration base = reflectiveConfiguration(WithConfiguration.class).get();
     TestRunnerConfiguration methodConfig = reflectiveMethodConfiguration(withRandomConfigMethod, base);
     Assert.assertEquals(base.getNbRun(), methodConfig.getNbRun());
-    Assert.assertEquals(base.acceptSkipped(), methodConfig.acceptSkipped());
+    Assert.assertEquals(base.acceptSkipped(), methodConfig.acceptSkipped(), 0);
     Assert.assertEquals(DefaultRandomFactory.class, methodConfig.getRandomFactory().getClass());
     Assert.assertEquals(base.getRegistryFactory(), methodConfig.getRegistryFactory());
   }
@@ -93,7 +93,7 @@ public class TestRunnerConfiguration_UT {
     TestRunnerConfiguration base = reflectiveConfiguration(WithConfiguration.class).get();
     TestRunnerConfiguration methodConfig = reflectiveMethodConfiguration(withRegistryConfigMethod, base);
     Assert.assertEquals(base.getNbRun(), methodConfig.getNbRun());
-    Assert.assertEquals(base.acceptSkipped(), methodConfig.acceptSkipped());
+    Assert.assertEquals(base.acceptSkipped(), methodConfig.acceptSkipped(), 0);
     Assert.assertEquals(base.getRandomFactory(), methodConfig.getRandomFactory());
     Assert.assertEquals(DefaultRegistryFactory.class, methodConfig.getRegistryFactory().getClass());
   }
@@ -103,7 +103,7 @@ public class TestRunnerConfiguration_UT {
   @TestConfiguration.NbRun(1024)
   private static void withRunConfigMethod() {}
 
-  @TestConfiguration.Skipped(accept=true)
+  @TestConfiguration.Skipped(0.0)
   private static void withAcceptSkippedConfigMethod() {}
 
   @TestConfiguration.Random(DefaultRandomFactory.class)
@@ -114,7 +114,7 @@ public class TestRunnerConfiguration_UT {
 
   private static final class WithoutConfiguration {}
 
-  @TestConfiguration(nbRun=NB_RUN, acceptSkipped=false, random=MyRandomFactory.class, registry=MyRegistryFactory.class)
+  @TestConfiguration(nbRun=NB_RUN, acceptSkipped=0.0, random=MyRandomFactory.class, registry=MyRegistryFactory.class)
   private static final class WithConfiguration {}
 
   private static final class MyRandomFactory implements RandomFactory {

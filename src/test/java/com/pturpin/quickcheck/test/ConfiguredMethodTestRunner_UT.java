@@ -21,6 +21,7 @@ import java.util.Random;
 import java.util.Set;
 
 import static com.pturpin.quickcheck.test.ConfiguredTestRunner.*;
+import static com.pturpin.quickcheck.test.TestResult.when;
 
 /**
  * Created by pturpin on 21/05/2017.
@@ -40,7 +41,7 @@ public class ConfiguredMethodTestRunner_UT {
         new DefaultRandomFactory());
 
     Set<Integer> nbRuns = ImmutableSet.of(1, 10, 50);
-    Set<Boolean> acceptSkippeds = ImmutableSet.of(true, false);
+    Set<Double> acceptSkippeds = ImmutableSet.of(0.0, 0.25, 0.5, 0.75, 1.0);
 
     nbRuns.stream()
         .flatMap(nbRun -> acceptSkippeds.stream()
@@ -59,9 +60,10 @@ public class ConfiguredMethodTestRunner_UT {
         .lookup(new ClassIdentifier<>(double.class));
     Random random = config.getRandomFactory().create();
 
-    boolean areExpectingError = !optDoubleGenerator.isPresent() || !config.acceptSkipped();
+    boolean areExpectingError = !optDoubleGenerator.isPresent() || config.getNbRun() * config.acceptSkipped() <= 1 || config.acceptSkipped() <= 0.5;
 
     UnitTest.state = new State();
+    UnitTest.skipCounter = 0;
     JUnitCore junit = new JUnitCore();
     Result result = junit.run(UnitTest.class);
     State state = UnitTest.state;
@@ -89,28 +91,29 @@ public class ConfiguredMethodTestRunner_UT {
     TestRunnerConfiguration config = TestRunnerConfigurations.reflectiveMethodMapper(method).map(baseConfig);
 
     Assert.assertEquals(settedConfig.getNbRun(), config.getNbRun());
-    Assert.assertEquals(settedConfig.acceptSkipped(), config.acceptSkipped());
+    Assert.assertEquals(settedConfig.acceptSkipped(), config.acceptSkipped(), 0);
 
-    settedConfig = TestRunnerConfigurations.configuration(settedConfig.getNbRun() + 1, !settedConfig.acceptSkipped(),
-        settedConfig.getRandomFactory(), settedConfig.getRegistryFactory());
+    settedConfig = TestRunnerConfigurations.configuration(settedConfig.getNbRun() + 1,
+        1 - settedConfig.acceptSkipped(), settedConfig.getRandomFactory(), settedConfig.getRegistryFactory());
 
     Assert.assertNotEquals(settedConfig.getNbRun(), config.getNbRun());
-    Assert.assertNotEquals(settedConfig.acceptSkipped(), config.acceptSkipped());
+    Assert.assertNotEquals(settedConfig.acceptSkipped(), config.acceptSkipped(), 0);
 
     updateAnnotationValue(settedConfig);
     config = TestRunnerConfigurations.reflectiveMethodMapper(method).map(baseConfig);
 
     Assert.assertEquals(settedConfig.getNbRun(), config.getNbRun());
-    Assert.assertEquals(settedConfig.acceptSkipped(), config.acceptSkipped());
+    Assert.assertEquals(settedConfig.acceptSkipped(), config.acceptSkipped(), 0);
   }
 
   @RunWith(RandomRunner.class)
   public static final class UnitTest {
     static State state = new State();
+    static int skipCounter = 0;
 
     @Test
     @TestConfiguration.NbRun(1)
-    @TestConfiguration.Skipped(accept=false)
+    @TestConfiguration.Skipped(0.0)
     @TestConfiguration.Random(DefaultRandomFactory.class)
     @TestConfiguration.Registry(DefaultRegistryFactory.class)
     public TestResult test(double v) {
@@ -119,7 +122,7 @@ public class ConfiguredMethodTestRunner_UT {
         state.firstDoubleInitialized = true;
         state.firstDouble = v;
       }
-      return TestResult.skipped();
+      return when(++skipCounter % 2 == 0, () -> {});
     }
   }
 
@@ -157,7 +160,7 @@ public class ConfiguredMethodTestRunner_UT {
       @Override public Class<? extends Annotation> annotationType() {
         return oldSkippedAnnot.annotationType();
       }
-      @Override public boolean accept() {
+      @Override public double value() {
         return config.acceptSkipped();
       }
       @Override public int hashCode() {

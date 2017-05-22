@@ -4,6 +4,7 @@ import com.pturpin.quickcheck.annotation.Doubles;
 import com.pturpin.quickcheck.annotation.Nullable;
 import com.pturpin.quickcheck.junit4.RandomRunner;
 import com.pturpin.quickcheck.test.TestResult;
+import com.pturpin.quickcheck.test.configuration.TestConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,6 +34,7 @@ public class RandomRunnerSample_UT {
   }
 
   @Test
+  @TestConfiguration.Skipped(0.75)
   public TestResult toStringThenParseShouldBeIdentity(@Nullable Double value) {
     return when(value != null, () -> {
       double parsed = Double.parseDouble(value.toString());
