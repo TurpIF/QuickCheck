@@ -18,7 +18,6 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static com.pturpin.quickcheck.test.ConfiguredTestRunner.*;
 import static com.pturpin.quickcheck.test.TestResult.when;
 
 /**
@@ -55,7 +54,7 @@ public class ConfiguredTestRunner_UT {
             .flatMap(registryFactory -> randomFactories.stream()
                 .map(randomFactory ->
                     TestRunnerConfigurations.configuration(nbRun, acceptSkipped, randomFactory, registryFactory)))))
-    .forEach(unchecked(ConfiguredTestRunner_UT::checkClassConfiguration));
+    .forEach(ConfiguredTestRunner.unchecked(ConfiguredTestRunner_UT::checkClassConfiguration));
   }
 
   @Test

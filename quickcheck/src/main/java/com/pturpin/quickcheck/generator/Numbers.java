@@ -121,7 +121,7 @@ public final class Numbers {
 
   /**
    * Returns a new uniform double generator bounded between
-   * {@link -Double#MAX_VALUE} and {@link Double#MAX_VALUE} included.
+   * -{@link Double#MAX_VALUE} and {@link Double#MAX_VALUE} included.
    *
    * @return uniform double generator
    */
