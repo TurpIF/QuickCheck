@@ -2,7 +2,7 @@ package fr.pturpin.quickcheck.sample;
 
 import fr.pturpin.quickcheck.annotation.Doubles;
 import fr.pturpin.quickcheck.annotation.Nullable;
-import fr.pturpin.quickcheck.junit4.RandomRunner;
+import fr.pturpin.quickcheck.junit4.QuickCheck;
 import fr.pturpin.quickcheck.test.TestResult;
 import fr.pturpin.quickcheck.test.configuration.TestConfiguration;
 import org.junit.Assert;
@@ -12,8 +12,8 @@ import org.junit.runner.RunWith;
 /**
  * Created by turpif on 28/04/17.
  */
-@RunWith(RandomRunner.class)
-public class RandomRunnerSample_UT {
+@RunWith(QuickCheck.class)
+public class QuickCheckSample_UT {
 
   @Test
   public void absoluteValueShouldBePositiveExceptNaN(double value) {

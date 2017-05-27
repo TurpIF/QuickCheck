@@ -23,11 +23,11 @@ import java.util.function.Function;
 /**
  * Created by turpif on 28/04/17.
  */
-public class RandomRunner extends BlockJUnit4ClassRunner {
+public class QuickCheck extends BlockJUnit4ClassRunner {
 
   private final TestRunnerConfiguration configuration;
 
-  public RandomRunner(Class<?> klass) throws InitializationError {
+  public QuickCheck(Class<?> klass) throws InitializationError {
     super(klass);
 
     try {
@@ -38,7 +38,7 @@ public class RandomRunner extends BlockJUnit4ClassRunner {
     }
   }
 
-  RandomRunner(Class<?> klass, TestRunnerConfiguration configuration) throws InitializationError {
+  QuickCheck(Class<?> klass, TestRunnerConfiguration configuration) throws InitializationError {
     super(klass);
     this.configuration = configuration;
   }

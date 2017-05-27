@@ -3,7 +3,7 @@ package fr.pturpin.quickcheck.test;
 import com.google.common.collect.ImmutableSet;
 import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.identifier.ClassIdentifier;
-import fr.pturpin.quickcheck.junit4.RandomRunner;
+import fr.pturpin.quickcheck.junit4.QuickCheck;
 import fr.pturpin.quickcheck.test.configuration.*;
 import org.junit.Assert;
 import org.junit.Test;
@@ -78,7 +78,7 @@ public class ConfiguredTestRunner_UT {
     Assert.assertEquals(settedConfig.acceptSkipped(), config.acceptSkipped(), 0);
   }
 
-  @RunWith(RandomRunner.class)
+  @RunWith(QuickCheck.class)
   public static final class WithoutAnnotationTests {
     static ConfiguredTestRunner.State state = new ConfiguredTestRunner.State();
     static int skipCounter = 0;
@@ -96,7 +96,7 @@ public class ConfiguredTestRunner_UT {
     }
   }
 
-  @RunWith(RandomRunner.class)
+  @RunWith(QuickCheck.class)
   @TestConfiguration
   public static final class WithAnnotationTests {
     static ConfiguredTestRunner.State state = new ConfiguredTestRunner.State();

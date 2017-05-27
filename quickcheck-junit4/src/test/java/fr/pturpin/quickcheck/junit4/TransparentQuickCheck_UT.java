@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 /**
  * Created by pturpin on 15/05/2017.
  */
-@RunWith(RandomRunner.class)
-@TestConfiguration(nbRun = TransparentRandomRunner_UT.NB_RUN)
-public class TransparentRandomRunner_UT {
+@RunWith(QuickCheck.class)
+@TestConfiguration(nbRun = TransparentQuickCheck_UT.NB_RUN)
+public class TransparentQuickCheck_UT {
 
   static final int NB_RUN = 10;
   private static int nonVoidTestMethodShouldBeCalledAsConfiguredCounter = 0;
@@ -102,7 +102,7 @@ public class TransparentRandomRunner_UT {
     Assert.assertEquals(3, BeforeAndAfterShouldBeCalled.counterClass);
   }
 
-  @RunWith(RandomRunner.class)
+  @RunWith(QuickCheck.class)
   public static final class BeforeAndAfterShouldBeCalled {
     private static int counterClass = 0;
     private int counter = 0;
