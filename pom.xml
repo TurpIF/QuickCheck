@@ -3,17 +3,41 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.pturpin.quickcheck</groupId>
+    <groupId>fr.pturpin.quickcheck</groupId>
     <artifactId>quickcheck-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
-
     <packaging>pom</packaging>
+
     <name>quickcheck-parent</name>
+    <description>QuickCheck is a library for random testing of program properties.</description>
+    <url>https://gitlab.com/TurpIF/QuickCheck</url>
 
     <modules>
         <module>quickcheck</module>
         <module>quickcheck-junit4</module>
     </modules>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>pturpin</id>
+            <name>Pierre Turpin</name>
+            <email>quickcheck@pturpin.fr</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://gitlab.com/TurpIF/QuickCheck.git</connection>
+        <developerConnection>scm:git:ssh://gitlab.com:TurpIF/QuickCheck.git</developerConnection>
+        <url>https://gitlab.com/TurpIF/QuickCheck</url>
+    </scm>
 
     <properties>
         <!-- Generic properties -->
