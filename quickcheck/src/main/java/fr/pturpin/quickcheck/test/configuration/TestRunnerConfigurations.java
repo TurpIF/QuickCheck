@@ -15,7 +15,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class TestRunnerConfigurations {
 
   private static final int DEFAULT_NB_RUN = 100;
-  static final double DEFAULT_ACCEPT_SKIPPED = 0.0;
+  static final double DEFAULT_ACCEPT_SKIPPED = 0.99;
   private static final RandomFactory DEFAULT_RANDOM_FACTORY = new DefaultRandomFactory();
   private static final RegistryFactory DEFAULT_REGISTRY_FACTORY = new DefaultRegistryFactory();
 
