@@ -1,6 +1,5 @@
 package com.pturpin.quickcheck.generator;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.pturpin.quickcheck.base.Ranges;
 import com.pturpin.quickcheck.base.Ranges.DoubleRange;

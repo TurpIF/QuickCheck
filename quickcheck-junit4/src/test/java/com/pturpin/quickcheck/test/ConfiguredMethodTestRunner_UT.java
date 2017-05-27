@@ -49,7 +49,7 @@ public class ConfiguredMethodTestRunner_UT {
                 .flatMap(registryFactory -> randomFactories.stream()
                     .map(randomFactory ->
                         TestRunnerConfigurations.configuration(nbRun, acceptSkipped, randomFactory, registryFactory)))))
-        .forEach(unchecked(ConfiguredMethodTestRunner_UT::checkMethodConfiguration));
+        .forEach(ConfiguredTestRunner.unchecked(ConfiguredMethodTestRunner_UT::checkMethodConfiguration));
   }
 
   private static void checkMethodConfiguration(TestRunnerConfiguration config) throws Exception {
