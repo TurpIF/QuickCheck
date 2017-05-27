@@ -5,13 +5,13 @@
 
     <parent>
         <groupId>com.pturpin.quickcheck</groupId>
-        <artifactId>QuickCheck-parent</artifactId>
+        <artifactId>quickcheck-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>QuickCheck</artifactId>
+    <artifactId>quickcheck</artifactId>
     <packaging>jar</packaging>
-    <name>QuickCheck</name>
+    <name>quickcheck</name>
 
     <dependencies>
         <!--All dependencies to put here, including module dependencies-->
