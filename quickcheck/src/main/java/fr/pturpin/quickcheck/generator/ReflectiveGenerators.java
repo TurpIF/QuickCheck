@@ -33,10 +33,27 @@ public final class ReflectiveGenerators {
     this.registry = checkNotNull(registry);
   }
 
+  /**
+   * Creates a new reflective generator factory with given generator registry.
+   *
+   * @param registry generator registry to use for look up
+   * @return new reflective generator factory
+   * @throws NullPointerException if given registry is null
+   */
   public static ReflectiveGenerators with(Registry registry) {
     return new ReflectiveGenerators(registry);
   }
 
+  /**
+   * Returns a generator of objects to invoke the given method with.
+   * If no register generator exists for any parameters of given method, an empty is returned.
+   *
+   * @see #parameterGen(Parameter)
+   *
+   * @param method method to lookup the generator for
+   * @return generator to feed the method with
+   * @throws NullPointerException if given method is null
+   */
   // TODO use a Either monad to inform where the lookup had failed
   public Optional<Generator<Object[]>> parametersGen(Method method) {
     Parameter[] parameters = method.getParameters();
@@ -50,6 +67,24 @@ public final class ReflectiveGenerators {
             .toArray());
   }
 
+  /**
+   * Returns a generator of objects corresponding to the given parameter.
+   * If no registered generator match the given parameter, an empty is returned.
+   *
+   * A parameter can be decorated with several annotations that modify the fetched generators.
+   * The decoration is done from right to left. So, a parameter annotated (from right to left)
+   * by {@link Nullable} and then by {@link Objects.Filter} filtering null will never be null.
+   *
+   * @see Alias
+   * @see Ints
+   * @see Doubles
+   * @see Longs
+   * @see Objects
+   * @see Nullable
+   *
+   * @param parameter parameter to try to find a generator for
+   * @return looked up generator matching given parameter
+   */
   public Optional<Generator<Object>> parameterGen(Parameter parameter) {
     Optional<Generator<Object>> optGen = registry.lookup(parameterIdentifier(parameter));
 
@@ -216,11 +251,5 @@ public final class ReflectiveGenerators {
 
     Class<?> paramType = parameter.getType();
     return new ClassIdentifier<>((Class) paramType);
-  }
-
-  @Target(ElementType.FIELD)
-  @Retention(RetentionPolicy.RUNTIME)
-  public @interface Alias {
-    Class<?> value();
   }
 }
