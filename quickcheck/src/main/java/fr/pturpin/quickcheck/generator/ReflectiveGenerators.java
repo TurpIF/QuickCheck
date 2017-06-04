@@ -264,7 +264,7 @@ public final class ReflectiveGenerators {
       List<TypeIdentifier<?>> paramIdentifiers = Arrays.stream(parameterizedType.getActualTypeArguments())
           .map(ReflectiveGenerators::getParametrizedType)
           .collect(toImmutableList());
-      return ParametrizedIdentifier.create(rawIdentifier, paramIdentifiers);
+      return ParametrizedIdentifier.paramId(rawIdentifier, paramIdentifiers);
 
     }
     throw new UnsupportedOperationException("Not supported type: " + type);

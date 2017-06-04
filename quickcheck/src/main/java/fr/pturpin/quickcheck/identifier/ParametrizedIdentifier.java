@@ -22,11 +22,11 @@ public class ParametrizedIdentifier<T> implements TypeIdentifier<T> {
     this.parameters = ImmutableList.copyOf(checkNotNull(parameters));
   }
 
-  public static <T> ParametrizedIdentifier<T> create(TypeIdentifier<T> ownerIdentifier, List<TypeIdentifier<?>> parameters) {
+  public static <T> ParametrizedIdentifier<T> paramId(TypeIdentifier<T> ownerIdentifier, List<TypeIdentifier<?>> parameters) {
     return new ParametrizedIdentifier<>(ownerIdentifier, parameters);
   }
 
-  public static <T> ParametrizedIdentifier<T> create(Class<T> klass, Class<?>... parameters) {
+  public static <T> ParametrizedIdentifier<T> paramId(Class<T> klass, Class<?>... parameters) {
     return new ParametrizedIdentifier<>(new ClassIdentifier<>(klass), Arrays.stream(parameters).map(p -> new ClassIdentifier<>(p)).collect(toImmutableList()));
   }
 
