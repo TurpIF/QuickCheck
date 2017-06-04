@@ -5,12 +5,15 @@ import fr.pturpin.quickcheck.annotation.*;
 import fr.pturpin.quickcheck.base.Optionals;
 import fr.pturpin.quickcheck.base.Reflections;
 import fr.pturpin.quickcheck.identifier.ClassIdentifier;
+import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 import fr.pturpin.quickcheck.registry.Registry;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -248,8 +251,22 @@ public final class ReflectiveGenerators {
       Class<?> aliasType = aliasAnnot.value();
       return new ClassIdentifier<>((Class) aliasType);
     }
+    return getParametrizedType(parameter.getParameterizedType());
+  }
 
-    Class<?> paramType = parameter.getType();
-    return new ClassIdentifier<>((Class) paramType);
+  private static TypeIdentifier<Object> getParametrizedType(Type type) {
+    if (type instanceof Class<?>) {
+      return new ClassIdentifier<>((Class) type);
+    }
+    if (type instanceof ParameterizedType) {
+      ParameterizedType parameterizedType = (ParameterizedType) type;
+      TypeIdentifier<Object> rawIdentifier = getParametrizedType(parameterizedType.getRawType());
+      List<TypeIdentifier<?>> paramIdentifiers = Arrays.stream(parameterizedType.getActualTypeArguments())
+          .map(ReflectiveGenerators::getParametrizedType)
+          .collect(toImmutableList());
+      return ParametrizedIdentifier.create(rawIdentifier, paramIdentifiers);
+
+    }
+    throw new UnsupportedOperationException("Not supported type: " + type);
   }
 }
