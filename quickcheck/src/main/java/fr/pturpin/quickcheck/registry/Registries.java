@@ -2,12 +2,14 @@ package fr.pturpin.quickcheck.registry;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -24,7 +26,7 @@ public final class Registries {
   }
 
   public static Registry forMap(Map<TypeIdentifier<?>, Generator<?>> map) {
-    return new MapRegistry(ImmutableMap.copyOf(map));
+    return new MapRegistry(ImmutableMap.copyOf(Maps.transformValues(map, v -> r -> Optional.of(v))));
   }
 
   public static Registry empty() {
@@ -68,27 +70,34 @@ public final class Registries {
   }
 
   private static final class MapRegistry implements Registry {
-    private final ImmutableMap<TypeIdentifier<?>, Generator<?>> map;
+    private final ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map;
 
-    private MapRegistry(ImmutableMap<TypeIdentifier<?>, Generator<?>> map) {
+    private MapRegistry(ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map) {
       this.map = checkNotNull(map);
     }
 
     @Override
     public <T> Optional<Generator<T>> lookup(TypeIdentifier<T> identifier) {
-      return Optional.ofNullable((Generator) map.get(identifier));
+      Optional<Generator<?>> generator = Optional.ofNullable(map.get(identifier))
+          .flatMap(f -> f.apply(this));
+      return generator.map(Generator.class::cast);
     }
   }
 
   public static final class RegistryBuilder {
-    private final ImmutableMap.Builder<TypeIdentifier<?>, Generator<?>> builder;
+    private final ImmutableMap.Builder<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> builder;
 
     private RegistryBuilder() {
       this.builder = ImmutableMap.builder();
     }
 
     public <T> RegistryBuilder put(TypeIdentifier<T> identifier, Generator<T> generator) {
-      builder.put(identifier, generator);
+      builder.put(identifier, r -> Optional.of(generator));
+      return this;
+    }
+
+    public <T> RegistryBuilder put(TypeIdentifier<T> identifier, Function<Registry, Optional<Generator<T>>> generatorFactory) {
+      builder.put(identifier, (Function) generatorFactory);
       return this;
     }
 

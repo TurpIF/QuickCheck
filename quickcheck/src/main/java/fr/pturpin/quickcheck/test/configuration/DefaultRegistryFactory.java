@@ -2,13 +2,17 @@ package fr.pturpin.quickcheck.test.configuration;
 
 import fr.pturpin.quickcheck.base.Ranges;
 import fr.pturpin.quickcheck.base.Ranges.Range;
+import fr.pturpin.quickcheck.generator.Generator;
+import fr.pturpin.quickcheck.generator.NumberGens;
+import fr.pturpin.quickcheck.generator.collection.ListGens;
 import fr.pturpin.quickcheck.identifier.ClassIdentifier;
+import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
 import fr.pturpin.quickcheck.registry.Registries;
 import fr.pturpin.quickcheck.registry.Registry;
-import fr.pturpin.quickcheck.generator.NumberGens;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 
 /**
  * Created by turpif on 28/04/17.
@@ -38,6 +42,11 @@ public final class DefaultRegistryFactory implements RegistryFactory {
         .put(new ClassIdentifier<>(Long.class), NumberGens.longGen())
         .put(new ClassIdentifier<>(BigInteger.class), NumberGens.bigIntegerGen(bigIntegerRange))
         .put(new ClassIdentifier<>(BigDecimal.class), NumberGens.bigDecimalGen(bigDecimalRange))
+        .put(ParametrizedIdentifier.create((Class<List<Double>>) (Class) List.class, Double.class), (Registry registry) ->
+            registry.lookup(new ClassIdentifier<>(Double.class)).map(doubleGen -> {
+              Generator<Integer> sizeGen = NumberGens.integerGen(Ranges.closed(0, 100));
+              return ListGens.arrayListGen(doubleGen, sizeGen);
+            }))
         .build();
   }
 }
