@@ -15,9 +15,9 @@ import java.util.function.Predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Double.isFinite;
 
-public final class Numbers {
+public final class NumberGens {
 
-  private Numbers() {
+  private NumberGens() {
     /* factory class */
   }
 
