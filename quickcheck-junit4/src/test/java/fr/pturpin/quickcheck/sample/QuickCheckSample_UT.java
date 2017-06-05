@@ -1,5 +1,6 @@
 package fr.pturpin.quickcheck.sample;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import fr.pturpin.quickcheck.annotation.Doubles;
@@ -70,11 +71,16 @@ public class QuickCheckSample_UT {
     when(!ls.isEmpty(), () -> {
       ls.sort(Comparator.naturalOrder());
       Streams.zip(ls.subList(0, ls.size() - 1).stream(), ls.subList(1, ls.size()).stream(), Maps::immutableEntry)
-        .forEach(entry -> {
-          double before = entry.getKey();
-          double after = entry.getKey();
-          Assert.assertTrue(Double.compare(before, after) <= 0);
-        });
+          .forEach(entry -> {
+            double before = entry.getKey();
+            double after = entry.getKey();
+            Assert.assertTrue(Double.compare(before, after) <= 0);
+          });
     });
+  }
+
+  @Test
+  public void reversedTwiceIsTheIdentity(List<List<Integer>> ls) {
+    Assert.assertEquals(ls, Lists.reverse(Lists.reverse(ls)));
   }
 }
