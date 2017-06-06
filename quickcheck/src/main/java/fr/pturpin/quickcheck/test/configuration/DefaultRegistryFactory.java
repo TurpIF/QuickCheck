@@ -50,7 +50,7 @@ public final class DefaultRegistryFactory implements RegistryFactory {
         .put(classId(BigDecimal.class), NumberGens.bigDecimalGen(bigDecimalRange))
         .putDyn(ImmutableList.class, resolved(gen -> ListGens.immutableListGen(gen, sizeGen)))
         .putDyn(List.class, resolved(gen -> ListGens.arrayListGen(gen, sizeGen)))
-        .putDyn(Supplier.class, resolved(gen -> Generators.<Object, Supplier<?>>map(gen, v -> () -> v)))
+        .putDyn(Supplier.class, resolved(gen -> Generators.<Object, Supplier>map(gen, v -> () -> v)))
         .build();
   }
 }

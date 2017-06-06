@@ -36,10 +36,10 @@ public final class Registries {
     return new RegistryBuilder();
   }
 
-  public static Registry forMap(Map<TypeIdentifier<?>, Generator<?>> map) {
+  public static Registry forMap(Map<? extends TypeIdentifier<?>, ? extends Generator<?>> map) {
     CompletableFuture<Registry> allRegistry = new CompletableFuture<>();
     Supplier<Registry> allRegistrySup = () -> Futures.getUnchecked(allRegistry);
-    Registry registry = new MapRegistry(allRegistrySup, ImmutableMap.copyOf(Maps.transformValues(map, v -> r -> Optional.of(v))));
+    Registry registry = new StaticRegistry(allRegistrySup, ImmutableMap.copyOf(Maps.transformValues(map, v -> r -> Optional.of(v))));
     allRegistry.complete(registry);
     return registry;
   }
@@ -84,11 +84,11 @@ public final class Registries {
     }
   }
 
-  private static final class MapRegistry implements Registry {
+  private static final class StaticRegistry implements Registry {
     private final Supplier<Registry> allRegistry;
     private final ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map;
 
-    private MapRegistry(Supplier<Registry> allRegistry, ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map) {
+    private StaticRegistry(Supplier<Registry> allRegistry, ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map) {
       this.allRegistry = checkNotNull(allRegistry);
       this.map = checkNotNull(map);
     }
@@ -217,7 +217,7 @@ public final class Registries {
       Supplier<Registry> allRegistrySup = () -> Futures.getUnchecked(allRegistry);
 
       Registry registry = alternatives(
-          new MapRegistry(allRegistrySup, staticBuilder.build()),
+          new StaticRegistry(allRegistrySup, staticBuilder.build()),
           new DynamicRegistry(allRegistrySup, dynamicBuilder.build()));
       allRegistry.complete(registry);
       return registry;
