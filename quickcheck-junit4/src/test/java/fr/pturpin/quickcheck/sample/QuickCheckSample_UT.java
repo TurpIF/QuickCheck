@@ -80,7 +80,7 @@ public class QuickCheckSample_UT {
   }
 
   @Test
-  public void reversedTwiceIsTheIdentity(List<List<Integer>> ls) {
+  public void reversedTwiceIsTheIdentity(List<? extends List<Integer>> ls) {
     Assert.assertEquals(ls, Lists.reverse(Lists.reverse(ls)));
   }
 }
