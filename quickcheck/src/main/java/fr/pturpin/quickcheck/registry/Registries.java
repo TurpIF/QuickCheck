@@ -186,7 +186,6 @@ public final class Registries {
     }
 
     public <T> RegistryBuilder putDyn(Class<T> identifier, BiFunction<Registry, TypeIdentifier<?>, Optional<Generator<T>>> generatorFactory) {
-      // TODO check class cast
       return putDynamic(identifier, (registry, params) ->
           params.size() == 1 ? generatorFactory.apply(registry, params.get(0)) : Optional.empty());
     }

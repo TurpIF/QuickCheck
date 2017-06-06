@@ -30,6 +30,10 @@ public class ParametrizedIdentifier<T> implements TypeIdentifier<T> {
     return new ParametrizedIdentifier<>(new ClassIdentifier<>(klass), Arrays.stream(parameters).map(p -> new ClassIdentifier<>(p)).collect(toImmutableList()));
   }
 
+  public static <T> ParametrizedIdentifier<T> paramId(Class<T> klass, TypeIdentifier<?>... parameters) {
+    return new ParametrizedIdentifier<>(new ClassIdentifier<>(klass), Arrays.asList(parameters));
+  }
+
   @Override
   public Class<T> getTypeClass() {
     return ownerIdentifier.getTypeClass();
