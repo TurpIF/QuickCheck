@@ -67,7 +67,7 @@ public final class Optionals {
 
     @Override
     public Function<Optional<A>, Optional<R>> finisher() {
-      return opt -> opt.map(downstream.finisher());
+      return opt -> (hasEmpty ? Optional.<A>empty() : opt).map(downstream.finisher());
     }
 
     @Override

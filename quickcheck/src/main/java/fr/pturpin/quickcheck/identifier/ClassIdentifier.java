@@ -9,6 +9,10 @@ public final class ClassIdentifier<T> implements TypeIdentifier<T> {
     this.klass = checkNotNull(klass);
   }
 
+  public static <T> TypeIdentifier<T> classId(Class<T> klass) {
+    return new ClassIdentifier<>(klass);
+  }
+
   @Override
   public Class<T> getTypeClass() {
     return klass;

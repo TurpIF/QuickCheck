@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 /**
  * Created by pturpin on 10/05/2017.
  */
-public class Numbers_UT {
+public class NumberGens_UT {
 
   private static final long SEED = 0L;
   private static final long NB_SAMPLES = 1000;
@@ -46,7 +46,7 @@ public class Numbers_UT {
 
   @Test
   public void specialDoubleGenShouldNotGenerateNull() {
-    assertNotNull(Numbers.specialDouble());
+    assertNotNull(NumberGens.specialDouble());
   }
 
   @Test
@@ -67,7 +67,7 @@ public class Numbers_UT {
   @Test
   public void boundedIntegerGenShouldBeBounded() {
     integerRanges().forEach(range -> {
-      Generator<Integer> generator = Numbers.integerGen(range);
+      Generator<Integer> generator = NumberGens.integerGen(range);
       assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
@@ -75,7 +75,7 @@ public class Numbers_UT {
   @Test
   public void boundedLongGenShouldBeBounded() {
     longRanges().forEach(range -> {
-      Generator<Long> generator = Numbers.longGen(range);
+      Generator<Long> generator = NumberGens.longGen(range);
       assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
@@ -83,7 +83,7 @@ public class Numbers_UT {
   @Test
   public void boundedDoubleGenShouldBeBounded() {
     doubleRanges().forEach(range -> {
-      Generator<Double> generator = Numbers.doubleGen(range);
+      Generator<Double> generator = NumberGens.doubleGen(range);
       assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
@@ -91,7 +91,7 @@ public class Numbers_UT {
   @Test
   public void boundedBigIntegerGenShouldBeBounded() {
     bigIntegerRanges().forEach(range -> {
-      Generator<BigInteger> generator = Numbers.bigIntegerGen(range);
+      Generator<BigInteger> generator = NumberGens.bigIntegerGen(range);
       assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
@@ -99,7 +99,7 @@ public class Numbers_UT {
   @Test
   public void boundedBigDecimalGenShouldBeBounded() {
     bigDecimalRanges().forEach(range -> {
-      Generator<BigDecimal> generator = Numbers.bigDecimalGen(range);
+      Generator<BigDecimal> generator = NumberGens.bigDecimalGen(range);
       assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
@@ -107,19 +107,19 @@ public class Numbers_UT {
   @Test
   public void doubleGenShouldThrowIfGivenNonFiniteBound() {
     Arrays.asList(Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY).forEach(bound -> {
-      Assertions.assertThrow(() -> Numbers.doubleGen(Ranges.closed(0.d, bound.doubleValue())));
-      Assertions.assertThrow(() -> Numbers.doubleGen(Ranges.closed(bound.doubleValue(), 0.d)));
+      Assertions.assertThrow(() -> NumberGens.doubleGen(Ranges.closed(0.d, bound.doubleValue())));
+      Assertions.assertThrow(() -> NumberGens.doubleGen(Ranges.closed(bound.doubleValue(), 0.d)));
     });
   }
 
   @Test
   public void bigIntegerGenShouldThrowIfGivenNullRange() {
-    Assertions.assertThrow(() -> Numbers.bigIntegerGen(null));
+    Assertions.assertThrow(() -> NumberGens.bigIntegerGen(null));
   }
 
   @Test
   public void bigDecimalGenShouldThrowIfGivenNullRange() {
-    Assertions.assertThrow(() -> Numbers.bigDecimalGen(null));
+    Assertions.assertThrow(() -> NumberGens.bigDecimalGen(null));
   }
 
   private static Stream<IntRange> integerRanges() {
@@ -208,26 +208,26 @@ public class Numbers_UT {
   }
 
   private static Stream<Generator<Integer>> integerGens() {
-    return Stream.concat(Stream.of(Numbers.integerGen()),
-        integerRanges().map(Numbers::integerGen));
+    return Stream.concat(Stream.of(NumberGens.integerGen()),
+        integerRanges().map(NumberGens::integerGen));
   }
 
   private static Stream<Generator<Long>> longGens() {
-    return Stream.concat(Stream.of(Numbers.longGen()),
-        longRanges().map(Numbers::longGen));
+    return Stream.concat(Stream.of(NumberGens.longGen()),
+        longRanges().map(NumberGens::longGen));
   }
 
   private static Stream<Generator<Double>> doubleGens() {
-    return Stream.concat(Stream.of(Numbers.doubleGen()),
-        doubleRanges().map(Numbers::doubleGen));
+    return Stream.concat(Stream.of(NumberGens.doubleGen()),
+        doubleRanges().map(NumberGens::doubleGen));
   }
 
   private static Stream<Generator<BigInteger>> bigIntegerGens() {
-    return bigIntegerRanges().map(Numbers::bigIntegerGen);
+    return bigIntegerRanges().map(NumberGens::bigIntegerGen);
   }
 
   private static Stream<Generator<BigDecimal>> bigDecimalGens() {
-    return bigDecimalRanges().map(Numbers::bigDecimalGen);
+    return bigDecimalRanges().map(NumberGens::bigDecimalGen);
   }
 
   private static <T> void assertNotNull(Generator<T> generator) {
@@ -235,7 +235,7 @@ public class Numbers_UT {
   }
 
   private static <T> void assertNotNull(Stream<Generator<T>> generators) {
-    generators.forEach(Numbers_UT::assertNotNull);
+    generators.forEach(NumberGens_UT::assertNotNull);
   }
 
   private static <T> void assertProperty(Stream<Generator<T>> generators, Consumer<T> checker) {

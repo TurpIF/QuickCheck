@@ -75,7 +75,7 @@ public final class Generators {
   /**
    * Generator selecting uniformly a generator to execute in the given universe of possible generators.
    *
-   * @see #onGenOf(Generator[])
+   * @see #oneGenOf(Generator[])
    *
    * @param generators universe of possible generators
    * @param <T> type of generated elements
@@ -83,7 +83,7 @@ public final class Generators {
    * @throws IllegalArgumentException is given universe is empty
    * @throws NullPointerException if given universe is null
    */
-  public static <T> Generator<T> onGenOf(Collection<Generator<? extends T>> generators) {
+  public static <T> Generator<T> oneGenOf(Collection<Generator<? extends T>> generators) {
     checkArgument(!generators.isEmpty());
     return re -> Iterables.get(generators, re.nextInt(generators.size())).get(re);
   }
@@ -91,7 +91,7 @@ public final class Generators {
   /**
    * Generator selecting uniformly a generator to execute in the given universe of possible generators.
    *
-   * @see #onGenOf(Collection)
+   * @see #oneGenOf(Collection)
    *
    * @param generators universe of possible generators
    * @param <T> type of generated elements
@@ -99,8 +99,8 @@ public final class Generators {
    * @throws IllegalArgumentException is given universe is empty
    */
   @SafeVarargs
-  public static <T> Generator<T> onGenOf(Generator<? extends T>... generators) {
-    return onGenOf(ImmutableList.copyOf(generators));
+  public static <T> Generator<T> oneGenOf(Generator<? extends T>... generators) {
+    return oneGenOf(ImmutableList.copyOf(generators));
   }
 
   /**

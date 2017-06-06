@@ -2,7 +2,7 @@ package fr.pturpin.quickcheck.test;
 
 import com.google.common.collect.ImmutableMap;
 import fr.pturpin.quickcheck.functional.Checked.CheckedConsumer;
-import fr.pturpin.quickcheck.generator.Numbers;
+import fr.pturpin.quickcheck.generator.NumberGens;
 import fr.pturpin.quickcheck.identifier.ClassIdentifier;
 import fr.pturpin.quickcheck.registry.Registries;
 import fr.pturpin.quickcheck.registry.Registry;
@@ -28,7 +28,7 @@ public class ConfiguredTestRunner {
     public SpecialDoubleRegistryFactory() {}
     @Override  public Registry create() {
       return Registries.forMap(ImmutableMap.of(
-          new ClassIdentifier<>(double.class), Numbers.specialDouble()
+          new ClassIdentifier<>(double.class), NumberGens.specialDouble()
       ));
     }
   }
