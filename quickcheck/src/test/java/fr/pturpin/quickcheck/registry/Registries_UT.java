@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.generator.Generators;
+import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 import fr.pturpin.quickcheck.registry.Registries.RegistryBuilder;
 import org.junit.Assert;
@@ -13,6 +14,7 @@ import org.junit.Test;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -22,6 +24,7 @@ import static fr.pturpin.quickcheck.generator.Generators.oneOf;
 import static fr.pturpin.quickcheck.identifier.ClassIdentifier.classId;
 import static fr.pturpin.quickcheck.identifier.ParametrizedIdentifier.paramId;
 import static fr.pturpin.quickcheck.registry.Registries.DynamicRegistry.resolved;
+import static fr.pturpin.quickcheck.registry.Registries.alternatives;
 
 /**
  * Created by pturpin on 06/06/2017.
@@ -88,7 +91,7 @@ public class Registries_UT {
         .map(Registries::forMap)
         .collect(toImmutableList());
 
-    Registry alternative = Registries.alternatives(singletonRegistries);
+    Registry alternative = alternatives(singletonRegistries);
     Registry mapRegistry = Registries.forMap(map);
 
     assertEqualsRegistries(Sets.union(IDENTIFIERS, map.keySet()), alternative, mapRegistry);
@@ -101,7 +104,7 @@ public class Registries_UT {
     Registry helloRegistry = Registries.forMap(ImmutableMap.of(classId(String.class), helloGen));
     Registry worldRegistry = Registries.forMap(ImmutableMap.of(classId(String.class), worldGen));
 
-    Registry alternative = Registries.alternatives(helloRegistry, worldRegistry);
+    Registry alternative = alternatives(helloRegistry, worldRegistry);
 
     Optional<Generator<String>> optGenerator = alternative.lookup(classId(String.class));
     Assert.assertTrue(optGenerator.isPresent());
@@ -201,6 +204,68 @@ public class Registries_UT {
 
     Assert.assertEquals(staticGen, listStrGen);
     Assert.assertEquals(dynamicGen, listIntGen);
+  }
+
+  // re1[key1] != null & re2[dyn[T]] != null & re2[dyn[key1]] == null => re3[dyn[key1]] != null
+
+  @Test
+  public void registryShouldLookUpRecursively() {
+    Registry empty = Registries.empty();
+    Registry classRegistry = Registries.forMap(ImmutableMap.of(
+        classId(String.class), constGen("Hello"),
+        classId(Integer.class), oneOf(0, 1, 2, 3)));
+    Registry supplierStrRegistry = Registries.forMap(ImmutableMap.of(
+        paramId(Supplier.class, String.class), (Generator<Supplier<String>>) re -> () -> "World"));
+    Registry supplierRegistry = Registries.builder()
+        .putDyn(Supplier.class, resolved(gen -> Generators.<Object, Supplier>map(gen, v -> () -> v)))
+        .build();
+
+    {
+      Registry stringAlt = alternatives(supplierRegistry, supplierStrRegistry, classRegistry);
+      Optional<Generator<Supplier<String>>> optGen = stringAlt.<Supplier<String>>lookup(paramId((Class) Supplier.class, String.class));
+      Assert.assertEquals(optGen.get().get(new Random()).get(), "Hello");
+    }
+
+    {
+      Registry stringAlt = alternatives(supplierStrRegistry, supplierRegistry, classRegistry);
+      Optional<Generator<Supplier<String>>> optGen = stringAlt.<Supplier<String>>lookup(paramId((Class) Supplier.class, String.class));
+      Assert.assertEquals(optGen.get().get(new Random()).get(), "World");
+    }
+
+    IDENTIFIERS.forEach(id -> Assert.assertFalse(alternatives(empty, empty).lookup(id).isPresent()));
+    IDENTIFIERS.forEach(id -> Assert.assertFalse(alternatives(empty, alternatives(empty, empty)).lookup(id).isPresent()));
+
+    IDENTIFIERS.forEach(identifier -> {
+      Arrays.asList(empty, classRegistry, supplierStrRegistry).forEach(registry -> {
+        TypeIdentifier id = (TypeIdentifier) identifier;
+        ParametrizedIdentifier<Supplier<?>> paramId = paramId((Class) Supplier.class, identifier);
+        Optional<Generator> expected = registry.lookup(id);
+        Optional<Generator<Supplier<?>>> paramExpected = registry.lookup(paramId);
+
+        Registry simpleAlt = alternatives(registry, supplierRegistry);
+        Registry complexAlt = alternatives(
+            alternatives(empty, registry),
+            alternatives(supplierRegistry, empty));
+        Arrays.asList(simpleAlt, complexAlt).forEach(alternative -> {
+          Optional<Generator<?>> actual = alternative.lookup(paramId).map(gen -> Generators.map(gen, Supplier::get));
+
+          expected.ifPresent(expectedGen -> {
+            Assert.assertTrue(actual.isPresent());
+            Generator<?> actualGen = actual.get();
+
+            Random expectedRandom = new Random(0);
+            Random actualRandom = new Random(0);
+            for (int i = 0; i < 10; i++) {
+              Object fetchedExpected = expectedGen.get(expectedRandom);
+              Object fetchedActual = actualGen.get(actualRandom);
+              Assert.assertEquals(fetchedExpected, fetchedActual);
+            }
+          });
+
+          paramExpected.ifPresent(p -> Assert.assertTrue(actual.isPresent()));
+        });
+      });
+    });
   }
 
   private static void assertEqualsRegistries(Iterable<TypeIdentifier<?>> identifiers, Registry left, Registry right) {
