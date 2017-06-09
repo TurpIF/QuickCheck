@@ -2,7 +2,6 @@ package fr.pturpin.quickcheck.test;
 
 import com.google.common.collect.ImmutableSet;
 import fr.pturpin.quickcheck.generator.Generator;
-import fr.pturpin.quickcheck.identifier.ClassIdentifier;
 import fr.pturpin.quickcheck.junit4.QuickCheck;
 import fr.pturpin.quickcheck.test.configuration.*;
 import org.junit.Assert;
@@ -17,6 +16,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
 import static fr.pturpin.quickcheck.test.TestResult.when;
 
 /**
@@ -128,7 +128,7 @@ public class ConfiguredTestRunner_UT {
       Supplier<ConfiguredTestRunner.State> stateGetter) {
     Optional<Generator<Double>> optDoubleGenerator = config.getRegistryFactory()
         .create()
-        .lookup(new ClassIdentifier<>(double.class));
+        .lookup(classId(double.class));
     Random random = config.getRandomFactory().create();
 
     List<String> expectedFailedMethodNames = new ArrayList<>();

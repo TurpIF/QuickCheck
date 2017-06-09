@@ -1,17 +1,15 @@
 package fr.pturpin.quickcheck.generator;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Streams;
 import fr.pturpin.quickcheck.annotation.*;
 import fr.pturpin.quickcheck.base.Optionals;
 import fr.pturpin.quickcheck.base.Reflections;
-import fr.pturpin.quickcheck.identifier.ClassIdentifier;
-import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 import fr.pturpin.quickcheck.registry.Registry;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +20,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static fr.pturpin.quickcheck.base.Optionals.guard;
+import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.reflectiveId;
 
 /**
  * Created by turpif on 27/04/17.
@@ -247,28 +247,8 @@ public final class ReflectiveGenerators {
     Alias aliasAnnot = parameter.getAnnotation(Alias.class);
     if (aliasAnnot != null) {
       Class<?> aliasType = aliasAnnot.value();
-      return new ClassIdentifier<>((Class) aliasType);
+      return classId((Class) aliasType);
     }
-    return getParametrizedType(parameter.getParameterizedType());
-  }
-
-  private static TypeIdentifier<Object> getParametrizedType(Type type) {
-    if (type instanceof Class<?>) {
-      return new ClassIdentifier<>((Class) type);
-    }
-    if (type instanceof ParameterizedType) {
-      ParameterizedType parameterizedType = (ParameterizedType) type;
-      TypeIdentifier<Object> rawIdentifier = getParametrizedType(parameterizedType.getRawType());
-      List<TypeIdentifier<?>> paramIdentifiers = Arrays.stream(parameterizedType.getActualTypeArguments())
-          .map(ReflectiveGenerators::getParametrizedType)
-          .collect(toImmutableList());
-      return ParametrizedIdentifier.paramId(rawIdentifier, paramIdentifiers);
-    } else if (type instanceof WildcardType) {
-      WildcardType wildcardType = (WildcardType) type;
-      Type[] upperBounds = wildcardType.getUpperBounds();
-      Preconditions.checkState(upperBounds.length == 1, "Wildcard type are handled only with single upper bound: %s", type);
-      return getParametrizedType(upperBounds[0]);
-    }
-    throw new UnsupportedOperationException("Not supported type: " + type);
+    return reflectiveId(parameter.getParameterizedType());
   }
 }

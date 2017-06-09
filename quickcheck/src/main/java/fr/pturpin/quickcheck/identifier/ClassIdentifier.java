@@ -5,12 +5,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class ClassIdentifier<T> implements TypeIdentifier<T> {
   private final Class<T> klass;
 
-  public ClassIdentifier(Class<T> klass) {
+  ClassIdentifier(Class<T> klass) {
     this.klass = checkNotNull(klass);
-  }
-
-  public static <T> TypeIdentifier<T> classId(Class<T> klass) {
-    return new ClassIdentifier<>(klass);
   }
 
   @Override

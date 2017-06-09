@@ -4,8 +4,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
-import com.google.common.util.concurrent.Futures;
+import fr.pturpin.quickcheck.annotation.Gen;
 import fr.pturpin.quickcheck.base.Optionals;
+import fr.pturpin.quickcheck.base.Reflections;
+import fr.pturpin.quickcheck.functional.Checked.CheckedSupplier;
 import fr.pturpin.quickcheck.functional.Function3;
 import fr.pturpin.quickcheck.functional.Function4;
 import fr.pturpin.quickcheck.functional.Function5;
@@ -13,17 +15,22 @@ import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static fr.pturpin.quickcheck.functional.Checked.CheckedFunction.unchecked;
+import static fr.pturpin.quickcheck.identifier.Identifiers.reflectiveId;
 
 /**
  * Created by pturpin on 27/04/2017.
@@ -37,11 +44,60 @@ public final class Registries {
   }
 
   public static Registry forMap(Map<? extends TypeIdentifier<?>, ? extends Generator<?>> map) {
-    CompletableFuture<Registry> allRegistry = new CompletableFuture<>();
-    Supplier<Registry> allRegistrySup = () -> Futures.getUnchecked(allRegistry);
-    Registry registry = new StaticRegistry(allRegistrySup, ImmutableMap.copyOf(Maps.transformValues(map, v -> r -> Optional.of(v))));
-    allRegistry.complete(registry);
-    return registry;
+    return new StaticRegistry(ImmutableMap.copyOf(Maps.transformValues(map, v -> r -> Optional.of(v))));
+  }
+
+
+  public static Registry forClass(Class<?> klass) {
+    RegistryBuilder builder = builder();
+
+    Arrays.stream(klass.getDeclaredMethods())
+        .filter(method -> method.getAnnotation(Gen.class) != null)
+        .map(Registries::getIdentifiedGenerator)
+        .forEach(entry -> builder.put(entry.getKey(), entry.getValue()));
+
+    Registry registry = builder.build();
+    Class<?> superclass = klass.getSuperclass();
+    return superclass == null ? registry : alternatives(registry, forClass(superclass));
+  }
+
+  private static Entry<TypeIdentifier<Object>, Function<Registry, Optional<Generator<Object>>>> getIdentifiedGenerator(Method method) {
+    checkState(Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()),
+        "@Gen method should be public and static");
+
+    Parameter[] parameters = method.getParameters();
+    checkState(parameters.length == 0 || parameters.length == 1 && parameters[0].getType().equals(Registry.class),
+        "@Gen method should either have no parameter or have one Registry parameter");
+
+    TypeIdentifier<Object> returnId = reflectiveId(method.getGenericReturnType());
+    TypeIdentifier<?> generatorId;
+    Consumer<Boolean> checker;
+    Function<Registry, Optional<Generator<?>>> generatorF;
+
+    if (parameters.length == 1) {
+      checker = state -> checkState(state, "@Gen method should return Optional<Generator<T>> when getting Registry as parameter but was %s", returnId);
+
+      checker.accept(returnId.getTypeClass().equals(Optional.class)
+          && returnId instanceof ParametrizedIdentifier
+          && ((ParametrizedIdentifier) returnId).getParameters().size() == 1);
+
+      generatorId = ((ParametrizedIdentifier<?>) returnId).getParameters().get(0);
+
+      generatorF = unchecked(Reflections.<Registry>invoker1(method).andThen(obj -> (Optional<Generator<?>>) obj));
+    } else {
+      checker = state -> checkState(state, "@Gen method should return Generator<T>");
+      generatorId = returnId;
+
+      CheckedSupplier<Object, ?> rawGetter = Reflections.<Registry>invoker0(method);
+      generatorF = unchecked(registry -> Optional.of((Generator<?>) rawGetter.get()));
+    }
+
+    checker.accept(generatorId.getTypeClass().equals(Generator.class)
+        && generatorId instanceof ParametrizedIdentifier
+        && ((ParametrizedIdentifier) generatorId).getParameters().size() == 1);
+
+    TypeIdentifier<?> elementId = ((ParametrizedIdentifier<?>) generatorId).getParameters().get(0);
+    return Maps.immutableEntry((TypeIdentifier) elementId, (Function) generatorF);
   }
 
   public static Registry empty() {
@@ -49,11 +105,14 @@ public final class Registries {
   }
 
   public static Registry alternatives(Iterable<Registry> registries) {
-    return new AlternativeRegistry(ImmutableList.copyOf(registries));
+    ImmutableList<Registry> list = Streams.stream(registries)
+        .filter(re -> re != EmptyRegistry.EMPTY_INSTANCE)
+        .collect(toImmutableList());
+    return list.isEmpty() ? empty() : list.size() == 1 ? list.get(0) : new AlternativeRegistry(list);
   }
 
   public static Registry alternatives(Registry... registries) {
-    return new AlternativeRegistry(ImmutableList.copyOf(registries));
+    return alternatives(Arrays.asList(registries));
   }
 
   private static final class AlternativeRegistry implements Registry {
@@ -65,9 +124,9 @@ public final class Registries {
     }
 
     @Override
-    public <T> Optional<Generator<T>> lookup(TypeIdentifier<T> identifier) {
+    public <T> Optional<Generator<T>> recursiveLookup(Registry root, TypeIdentifier<T> identifier) {
       return registries.stream()
-          .map(registry -> registry.lookup(identifier))
+          .map(registry -> registry.recursiveLookup(root, identifier))
           .flatMap(Streams::stream)
           .findFirst();
     }
@@ -79,46 +138,42 @@ public final class Registries {
     EmptyRegistry() { /* nothing */ }
 
     @Override
-    public <T> Optional<Generator<T>> lookup(TypeIdentifier<T> identifier) {
+    public <T> Optional<Generator<T>> recursiveLookup(Registry root, TypeIdentifier<T> identifier) {
       return Optional.empty();
     }
   }
 
   private static final class StaticRegistry implements Registry {
-    private final Supplier<Registry> allRegistry;
     private final ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map;
 
-    private StaticRegistry(Supplier<Registry> allRegistry, ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map) {
-      this.allRegistry = checkNotNull(allRegistry);
+    private StaticRegistry(ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map) {
       this.map = checkNotNull(map);
     }
 
     @Override
-    public <T> Optional<Generator<T>> lookup(TypeIdentifier<T> identifier) {
+    public <T> Optional<Generator<T>> recursiveLookup(Registry root, TypeIdentifier<T> identifier) {
       Optional<Generator<?>> generator = Optional.ofNullable(map.get(identifier))
-          .flatMap(f -> f.apply(allRegistry.get()));
+          .flatMap(f -> f.apply(root));
       return generator.map(Generator.class::cast);
     }
   }
 
   public static final class DynamicRegistry implements Registry {
-    private final Supplier<Registry> allRegistry;
     private final ImmutableMap<Class<?>, BiFunction<Registry, List<TypeIdentifier<?>>, Optional<Generator<?>>>> map;
 
-    private DynamicRegistry(Supplier<Registry> allRegistry, ImmutableMap<Class<?>, BiFunction<Registry, List<TypeIdentifier<?>>, Optional<Generator<?>>>> map) {
-      this.allRegistry = checkNotNull(allRegistry);
+    private DynamicRegistry(ImmutableMap<Class<?>, BiFunction<Registry, List<TypeIdentifier<?>>, Optional<Generator<?>>>> map) {
       this.map = checkNotNull(map);
     }
 
     @Override
-    public <T> Optional<Generator<T>> lookup(TypeIdentifier<T> identifier) {
+    public <T> Optional<Generator<T>> recursiveLookup(Registry root, TypeIdentifier<T> identifier) {
       if (!(identifier instanceof ParametrizedIdentifier)) {
         return Optional.empty();
       }
 
       List<TypeIdentifier<?>> parameters = ((ParametrizedIdentifier<T>) identifier).getParameters();
       Optional<Generator<?>> generator = Optional.ofNullable(map.get(identifier.getTypeClass()))
-          .flatMap(f -> f.apply(allRegistry.get(), parameters));
+          .flatMap(f -> f.apply(root, parameters));
       return generator.map(Generator.class::cast);
     }
 
@@ -211,15 +266,20 @@ public final class Registries {
     }
 
     public Registry build() {
-      // FIXME very clean code...
-      CompletableFuture<Registry> allRegistry = new CompletableFuture<>();
-      Supplier<Registry> allRegistrySup = () -> Futures.getUnchecked(allRegistry);
+      ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> staticMap = staticBuilder.build();
+      ImmutableMap<Class<?>, BiFunction<Registry, List<TypeIdentifier<?>>, Optional<Generator<?>>>> dynamicMap = dynamicBuilder.build();
 
-      Registry registry = alternatives(
-          new StaticRegistry(allRegistrySup, staticBuilder.build()),
-          new DynamicRegistry(allRegistrySup, dynamicBuilder.build()));
-      allRegistry.complete(registry);
-      return registry;
+      if (staticMap.isEmpty() && dynamicMap.isEmpty()) {
+        return empty();
+      } else if (staticMap.isEmpty()) {
+        return new DynamicRegistry(dynamicMap);
+      } else if (dynamicMap.isEmpty()) {
+        return new StaticRegistry(staticMap);
+      } else {
+        return alternatives(
+            new StaticRegistry(staticMap),
+            new DynamicRegistry(dynamicMap));
+      }
     }
   }
 }
