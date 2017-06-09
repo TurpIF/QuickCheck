@@ -41,11 +41,8 @@ public final class DefaultRegistryFactory implements RegistryFactory {
 
     return Registries.builder()
         .put(classId(double.class), NumberGens.doubleGen())
-        .put(classId(Double.class), NumberGens.doubleGen())
         .put(classId(int.class), NumberGens.integerGen())
-        .put(classId(Integer.class), NumberGens.integerGen())
         .put(classId(long.class), NumberGens.longGen())
-        .put(classId(Long.class), NumberGens.longGen())
         .put(classId(BigInteger.class), NumberGens.bigIntegerGen(bigIntegerRange))
         .put(classId(BigDecimal.class), NumberGens.bigDecimalGen(bigDecimalRange))
         .putDyn(ImmutableList.class, resolved(gen -> ListGens.immutableListGen(gen, sizeGen)))

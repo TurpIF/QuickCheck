@@ -2,6 +2,7 @@ package fr.pturpin.quickcheck.test;
 
 import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.generator.ReflectiveGenerators;
+import fr.pturpin.quickcheck.registry.Registries;
 import fr.pturpin.quickcheck.registry.Registry;
 import fr.pturpin.quickcheck.test.configuration.TestRunnerConfiguration;
 
@@ -49,7 +50,9 @@ public final class TestRunners {
    * @throws NoRegisteredGenerator
    */
   private static Generator<Object[]> fetchParametersGen(Method method, TestRunnerConfiguration configuration) throws NoRegisteredGenerator {
-    Registry registry = configuration.getRegistryFactory().create();
+    Registry configRegistry = configuration.getRegistryFactory().create();
+    Registry klassRegistry = Registries.forClass(method.getDeclaringClass());
+    Registry registry = Registries.alternatives(klassRegistry, configRegistry);
     ReflectiveGenerators reflectiveGenerators = ReflectiveGenerators.with(registry);
     return reflectiveGenerators.parametersGen(method)
         .orElseThrow(() -> new NoRegisteredGenerator(method));

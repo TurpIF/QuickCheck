@@ -1,6 +1,7 @@
 package fr.pturpin.quickcheck.identifier;
 
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Primitives;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -20,7 +21,7 @@ public final class Identifiers {
   }
 
   public static <T> TypeIdentifier<T> classId(Class<T> klass) {
-    return new ClassIdentifier<>(klass);
+    return new ClassIdentifier<>(Primitives.wrap(klass));
   }
 
   public static <T> ParametrizedIdentifier<T> paramId(TypeIdentifier<T> ownerIdentifier, List<TypeIdentifier<?>> parameters) {
@@ -28,11 +29,11 @@ public final class Identifiers {
   }
 
   public static <T> ParametrizedIdentifier<T> paramId(Class<T> klass, Class<?>... parameters) {
-    return new ParametrizedIdentifier<>(new ClassIdentifier<>(klass), Arrays.stream(parameters).map(p -> new ClassIdentifier<>(p)).collect(toImmutableList()));
+    return new ParametrizedIdentifier<>(classId(klass), Arrays.stream(parameters).map(p -> classId(p)).collect(toImmutableList()));
   }
 
   public static <T> ParametrizedIdentifier<T> paramId(Class<T> klass, TypeIdentifier<?>... parameters) {
-    return new ParametrizedIdentifier<>(new ClassIdentifier<>(klass), Arrays.asList(parameters));
+    return new ParametrizedIdentifier<>(classId(klass), Arrays.asList(parameters));
   }
 
   public static TypeIdentifier<Object> reflectiveId(Type type) {
