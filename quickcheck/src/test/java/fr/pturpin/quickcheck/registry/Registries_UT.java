@@ -21,8 +21,8 @@ import java.util.stream.IntStream;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static fr.pturpin.quickcheck.generator.Generators.constGen;
 import static fr.pturpin.quickcheck.generator.Generators.oneOf;
-import static fr.pturpin.quickcheck.identifier.ClassIdentifier.classId;
-import static fr.pturpin.quickcheck.identifier.ParametrizedIdentifier.paramId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.paramId;
 import static fr.pturpin.quickcheck.registry.Registries.DynamicRegistry.resolved;
 import static fr.pturpin.quickcheck.registry.Registries.alternatives;
 

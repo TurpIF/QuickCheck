@@ -15,7 +15,7 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static fr.pturpin.quickcheck.identifier.ClassIdentifier.classId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
 import static fr.pturpin.quickcheck.registry.Registries.DynamicRegistry.resolved;
 
 /**
