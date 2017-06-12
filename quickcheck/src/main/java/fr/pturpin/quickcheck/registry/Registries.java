@@ -12,7 +12,6 @@ import fr.pturpin.quickcheck.functional.Function3;
 import fr.pturpin.quickcheck.functional.Function4;
 import fr.pturpin.quickcheck.functional.Function5;
 import fr.pturpin.quickcheck.generator.Generator;
-import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 
 import java.lang.reflect.Method;
@@ -30,7 +29,7 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static fr.pturpin.quickcheck.functional.Checked.CheckedFunction.unchecked;
-import static fr.pturpin.quickcheck.identifier.Identifiers.reflectiveId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.typeId;
 
 /**
  * Created by pturpin on 27/04/2017.
@@ -69,23 +68,23 @@ public final class Registries {
     checkState(parameters.length == 0 || parameters.length == 1 && parameters[0].getType().equals(Registry.class),
         "@Gen method should either have no parameter or have one Registry parameter");
 
-    TypeIdentifier<Object> returnId = reflectiveId(method.getGenericReturnType());
+    TypeIdentifier<Object> returnId = typeId(method.getGenericReturnType());
     TypeIdentifier<?> generatorId;
     Consumer<Boolean> checker;
     Function<Registry, Optional<Generator<?>>> generatorF;
 
     if (parameters.length == 1) {
-      checker = state -> checkState(state, "@Gen method should return Optional<Generator<T>> when getting Registry as parameter but was %s", returnId);
+      checker = state -> checkState(state, "@Gen method should return Optional<Generator<T>> when getting Registry as parameter but was %s for method %s", returnId, method);
 
       checker.accept(returnId.getTypeClass().equals(Optional.class)
-          && returnId instanceof ParametrizedIdentifier
-          && ((ParametrizedIdentifier) returnId).getParameters().size() == 1);
+          && returnId.getNbParametrizedType() == 1
+          && returnId.getParametrizedType().isPresent());
 
-      generatorId = ((ParametrizedIdentifier<?>) returnId).getParameters().get(0);
+      generatorId = returnId.getParametrizedType().get().get(0);
 
       generatorF = unchecked(Reflections.<Registry>invoker1(method).andThen(obj -> (Optional<Generator<?>>) obj));
     } else {
-      checker = state -> checkState(state, "@Gen method should return Generator<T>");
+      checker = state -> checkState(state, "@Gen method should return Generator<T> for method %s", method);
       generatorId = returnId;
 
       CheckedSupplier<Object, ?> rawGetter = Reflections.<Registry>invoker0(method);
@@ -93,10 +92,10 @@ public final class Registries {
     }
 
     checker.accept(generatorId.getTypeClass().equals(Generator.class)
-        && generatorId instanceof ParametrizedIdentifier
-        && ((ParametrizedIdentifier) generatorId).getParameters().size() == 1);
+        && generatorId.getNbParametrizedType() == 1
+        && generatorId.getParametrizedType().isPresent());
 
-    TypeIdentifier<?> elementId = ((ParametrizedIdentifier<?>) generatorId).getParameters().get(0);
+    TypeIdentifier<?> elementId = generatorId.getParametrizedType().get().get(0);
     return Maps.immutableEntry((TypeIdentifier) elementId, (Function) generatorF);
   }
 
@@ -167,14 +166,11 @@ public final class Registries {
 
     @Override
     public <T> Optional<Generator<T>> recursiveLookup(Registry root, TypeIdentifier<T> identifier) {
-      if (!(identifier instanceof ParametrizedIdentifier)) {
-        return Optional.empty();
-      }
-
-      List<TypeIdentifier<?>> parameters = ((ParametrizedIdentifier<T>) identifier).getParameters();
-      Optional<Generator<?>> generator = Optional.ofNullable(map.get(identifier.getTypeClass()))
-          .flatMap(f -> f.apply(root, parameters));
-      return generator.map(Generator.class::cast);
+      return identifier.getParametrizedType().flatMap(parameters -> {
+        Optional<Generator<?>> generator = Optional.ofNullable(map.get(identifier.getTypeClass()))
+            .flatMap(f -> f.apply(root, parameters));
+        return generator.map(Generator.class::cast);
+      });
     }
 
     public static <T> BiFunction<Registry, List<TypeIdentifier<?>>, Optional<Generator<T>>> allResolved(Function<List<Generator>, Generator<T>> mapper) {

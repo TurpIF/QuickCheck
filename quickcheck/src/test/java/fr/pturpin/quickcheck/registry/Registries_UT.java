@@ -6,7 +6,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.generator.Generators;
-import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
+import fr.pturpin.quickcheck.generator.NumberGens;
+import fr.pturpin.quickcheck.generator.collection.ListGens;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 import fr.pturpin.quickcheck.registry.Registries.RegistryBuilder;
 import org.junit.Assert;
@@ -238,7 +239,7 @@ public class Registries_UT {
     IDENTIFIERS.forEach(identifier -> {
       Arrays.asList(empty, classRegistry, supplierStrRegistry).forEach(registry -> {
         TypeIdentifier id = (TypeIdentifier) identifier;
-        ParametrizedIdentifier<Supplier<?>> paramId = paramId((Class) Supplier.class, identifier);
+        TypeIdentifier<Supplier<?>> paramId = paramId((Class) Supplier.class, identifier);
         Optional<Generator> expected = registry.lookup(id);
         Optional<Generator<Supplier<?>>> paramExpected = registry.lookup(paramId);
 
@@ -266,6 +267,18 @@ public class Registries_UT {
         });
       });
     });
+  }
+
+  @Test
+  public void dynamicRegistryShouldCheckNumberOfParametrizedTypes() {
+    Registry registry = Registries.builder()
+        .put(classId(double.class), NumberGens.doubleGen())
+        .putDyn(List.class, resolved(gen -> Generators.map(gen, g -> ListGens.arrayListGen((Generator) g, constGen(10)))))
+        .build();
+
+    Assert.assertFalse(registry.lookup(classId(List.class)).isPresent());
+    Assert.assertTrue(registry.lookup(paramId(List.class, double.class)).isPresent());
+    Assert.assertFalse(registry.lookup(paramId(List.class, double.class, double.class)).isPresent());
   }
 
   private static void assertEqualsRegistries(Iterable<TypeIdentifier<?>> identifiers, Registry left, Registry right) {
