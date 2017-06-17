@@ -21,7 +21,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static fr.pturpin.quickcheck.base.Optionals.guard;
 import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
-import static fr.pturpin.quickcheck.identifier.Identifiers.reflectiveId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.typeId;
 
 /**
  * Created by turpif on 27/04/17.
@@ -249,6 +249,6 @@ public final class ReflectiveGenerators {
       Class<?> aliasType = aliasAnnot.value();
       return classId((Class) aliasType);
     }
-    return reflectiveId(parameter.getParameterizedType());
+    return typeId(parameter.getParameterizedType());
   }
 }

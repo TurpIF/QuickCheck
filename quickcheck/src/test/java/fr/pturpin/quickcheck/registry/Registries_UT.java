@@ -6,7 +6,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.generator.Generators;
-import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
+import fr.pturpin.quickcheck.generator.NumberGens;
+import fr.pturpin.quickcheck.generator.java.util.JavaUtils;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 import fr.pturpin.quickcheck.registry.Registries.RegistryBuilder;
 import org.junit.Assert;
@@ -31,7 +32,7 @@ import static fr.pturpin.quickcheck.registry.Registries.alternatives;
  */
 public class Registries_UT {
 
-  public static final Set<TypeIdentifier<?>> IDENTIFIERS = ImmutableSet.of(
+  private static final Set<TypeIdentifier<?>> IDENTIFIERS = ImmutableSet.of(
       classId(String.class), classId(void.class), classId(int.class),
       classId(List.class), classId(Test.class));
 
@@ -140,7 +141,7 @@ public class Registries_UT {
 
     Registry registry = Registries.builder()
         .put(classId(String.class), oneOf("Lorem", "ipsum", "dolor", "sit", "amet"))
-        .put(paramId((Class) List.class, String.class), (Registry r) ->
+        .put(paramId(List.class, String.class), (Registry r) ->
             r.lookup(classId(String.class)).map(strGen -> Generators.map(strGen, mapper)))
         .build();
 
@@ -161,7 +162,7 @@ public class Registries_UT {
   public void buildWithDynamicEntryShouldLookupInsideRegistry() {
     Registry registry = Registries.builder()
         .put(classId(String.class), oneOf("Lorem", "ipsum", "dolor", "sit", "amet"))
-        .putDyn((Class) List.class, resolved(elemGen -> Generators.map(elemGen, ImmutableList::of)))
+        .putDyn(List.class, resolved(elemGen -> Generators.map(elemGen, ImmutableList::of)))
         .build();
 
     Generator<String> strGen = registry.lookup(classId(String.class)).get();
@@ -181,7 +182,7 @@ public class Registries_UT {
   public void buildWithDynamicEntryShouldRecognizedParametrizedId() {
     Registry registry = Registries.builder()
         .put(classId(String.class), oneOf("Lorem", "ipsum", "dolor", "sit", "amet"))
-        .putDyn((Class) List.class, resolved(elemGen -> Generators.map(elemGen, ImmutableList::of)))
+        .putDyn(List.class, resolved(elemGen -> Generators.map(elemGen, ImmutableList::of)))
         .build();
 
     Assert.assertTrue(registry.lookup(paramId(List.class, String.class)).isPresent());
@@ -195,8 +196,8 @@ public class Registries_UT {
     Generator<List<String>> dynamicGen = constGen(ImmutableList.of());
 
     Registry registry = Registries.builder()
-        .put(paramId((Class) List.class, String.class), staticGen)
-        .putDyn((Class) List.class, (r, id) -> Optional.of(dynamicGen))
+        .put(paramId(List.class, String.class), staticGen)
+        .putDyn(List.class, (r, id) -> Optional.of(dynamicGen))
         .build();
 
     Generator<List> listStrGen = registry.lookup(paramId(List.class, String.class)).get();
@@ -222,13 +223,13 @@ public class Registries_UT {
 
     {
       Registry stringAlt = alternatives(supplierRegistry, supplierStrRegistry, classRegistry);
-      Optional<Generator<Supplier<String>>> optGen = stringAlt.<Supplier<String>>lookup(paramId((Class) Supplier.class, String.class));
+      Optional<Generator<Supplier<String>>> optGen = stringAlt.lookup(paramId(Supplier.class, String.class));
       Assert.assertEquals(optGen.get().get(new Random()).get(), "Hello");
     }
 
     {
       Registry stringAlt = alternatives(supplierStrRegistry, supplierRegistry, classRegistry);
-      Optional<Generator<Supplier<String>>> optGen = stringAlt.<Supplier<String>>lookup(paramId((Class) Supplier.class, String.class));
+      Optional<Generator<Supplier<String>>> optGen = stringAlt.lookup(paramId(Supplier.class, String.class));
       Assert.assertEquals(optGen.get().get(new Random()).get(), "World");
     }
 
@@ -237,9 +238,9 @@ public class Registries_UT {
 
     IDENTIFIERS.forEach(identifier -> {
       Arrays.asList(empty, classRegistry, supplierStrRegistry).forEach(registry -> {
-        TypeIdentifier id = (TypeIdentifier) identifier;
-        ParametrizedIdentifier<Supplier<?>> paramId = paramId((Class) Supplier.class, identifier);
-        Optional<Generator> expected = registry.lookup(id);
+        TypeIdentifier<Object> id = (TypeIdentifier) identifier;
+        TypeIdentifier<Supplier<?>> paramId = paramId(Supplier.class, identifier);
+        Optional<Generator<Object>> expected = registry.lookup(id);
         Optional<Generator<Supplier<?>>> paramExpected = registry.lookup(paramId);
 
         Registry simpleAlt = alternatives(registry, supplierRegistry);
@@ -266,6 +267,18 @@ public class Registries_UT {
         });
       });
     });
+  }
+
+  @Test
+  public void dynamicRegistryShouldCheckNumberOfParametrizedTypes() {
+    Registry registry = Registries.builder()
+        .put(classId(double.class), NumberGens.doubleGen())
+        .putDyn(List.class, resolved(gen -> JavaUtils.arrayListGen(gen, constGen(10))))
+        .build();
+
+    Assert.assertFalse(registry.lookup(classId(List.class)).isPresent());
+    Assert.assertTrue(registry.lookup(paramId(List.class, double.class)).isPresent());
+    Assert.assertFalse(registry.lookup(paramId(List.class, double.class, double.class)).isPresent());
   }
 
   private static void assertEqualsRegistries(Iterable<TypeIdentifier<?>> identifiers, Registry left, Registry right) {

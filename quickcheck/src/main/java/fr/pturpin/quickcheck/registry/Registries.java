@@ -12,7 +12,6 @@ import fr.pturpin.quickcheck.functional.Function3;
 import fr.pturpin.quickcheck.functional.Function4;
 import fr.pturpin.quickcheck.functional.Function5;
 import fr.pturpin.quickcheck.generator.Generator;
-import fr.pturpin.quickcheck.identifier.ParametrizedIdentifier;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 
 import java.lang.reflect.Method;
@@ -30,7 +29,7 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static fr.pturpin.quickcheck.functional.Checked.CheckedFunction.unchecked;
-import static fr.pturpin.quickcheck.identifier.Identifiers.reflectiveId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.typeId;
 
 /**
  * Created by pturpin on 27/04/2017.
@@ -69,23 +68,23 @@ public final class Registries {
     checkState(parameters.length == 0 || parameters.length == 1 && parameters[0].getType().equals(Registry.class),
         "@Gen method should either have no parameter or have one Registry parameter");
 
-    TypeIdentifier<Object> returnId = reflectiveId(method.getGenericReturnType());
+    TypeIdentifier<Object> returnId = typeId(method.getGenericReturnType());
     TypeIdentifier<?> generatorId;
     Consumer<Boolean> checker;
     Function<Registry, Optional<Generator<?>>> generatorF;
 
     if (parameters.length == 1) {
-      checker = state -> checkState(state, "@Gen method should return Optional<Generator<T>> when getting Registry as parameter but was %s", returnId);
+      checker = state -> checkState(state, "@Gen method should return Optional<Generator<T>> when getting Registry as parameter but was %s for method %s", returnId, method);
 
       checker.accept(returnId.getTypeClass().equals(Optional.class)
-          && returnId instanceof ParametrizedIdentifier
-          && ((ParametrizedIdentifier) returnId).getParameters().size() == 1);
+          && returnId.getNbParametrizedType() == 1
+          && returnId.getParametrizedType().isPresent());
 
-      generatorId = ((ParametrizedIdentifier<?>) returnId).getParameters().get(0);
+      generatorId = returnId.getParametrizedType().get().get(0);
 
       generatorF = unchecked(Reflections.<Registry>invoker1(method).andThen(obj -> (Optional<Generator<?>>) obj));
     } else {
-      checker = state -> checkState(state, "@Gen method should return Generator<T>");
+      checker = state -> checkState(state, "@Gen method should return Generator<T> for method %s", method);
       generatorId = returnId;
 
       CheckedSupplier<Object, ?> rawGetter = Reflections.<Registry>invoker0(method);
@@ -93,10 +92,10 @@ public final class Registries {
     }
 
     checker.accept(generatorId.getTypeClass().equals(Generator.class)
-        && generatorId instanceof ParametrizedIdentifier
-        && ((ParametrizedIdentifier) generatorId).getParameters().size() == 1);
+        && generatorId.getNbParametrizedType() == 1
+        && generatorId.getParametrizedType().isPresent());
 
-    TypeIdentifier<?> elementId = ((ParametrizedIdentifier<?>) generatorId).getParameters().get(0);
+    TypeIdentifier<?> elementId = generatorId.getParametrizedType().get().get(0);
     return Maps.immutableEntry((TypeIdentifier) elementId, (Function) generatorF);
   }
 
@@ -143,7 +142,7 @@ public final class Registries {
     }
   }
 
-  private static final class StaticRegistry implements Registry {
+  public static final class StaticRegistry implements Registry {
     private final ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map;
 
     private StaticRegistry(ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map) {
@@ -156,6 +155,10 @@ public final class Registries {
           .flatMap(f -> f.apply(root));
       return generator.map(Generator.class::cast);
     }
+
+    public static <A, T> Function<Registry, Optional<Generator<T>>> resolved(TypeIdentifier<A> firstType, Function<Generator<A>, Generator<T>> mapper) {
+      return (Registry registry) -> registry.lookup(firstType).map(mapper);
+    }
   }
 
   public static final class DynamicRegistry implements Registry {
@@ -167,14 +170,11 @@ public final class Registries {
 
     @Override
     public <T> Optional<Generator<T>> recursiveLookup(Registry root, TypeIdentifier<T> identifier) {
-      if (!(identifier instanceof ParametrizedIdentifier)) {
-        return Optional.empty();
-      }
-
-      List<TypeIdentifier<?>> parameters = ((ParametrizedIdentifier<T>) identifier).getParameters();
-      Optional<Generator<?>> generator = Optional.ofNullable(map.get(identifier.getTypeClass()))
-          .flatMap(f -> f.apply(root, parameters));
-      return generator.map(Generator.class::cast);
+      return identifier.getParametrizedType().flatMap(parameters -> {
+        Optional<Generator<?>> generator = Optional.ofNullable(map.get(identifier.getTypeClass()))
+            .flatMap(f -> f.apply(root, parameters));
+        return generator.map(Generator.class::cast);
+      });
     }
 
     public static <T> BiFunction<Registry, List<TypeIdentifier<?>>, Optional<Generator<T>>> allResolved(Function<List<Generator>, Generator<T>> mapper) {
@@ -186,14 +186,12 @@ public final class Registries {
               .map(generators -> mapper.apply((List) generators));
     }
 
-    public static <T> BiFunction<Registry, TypeIdentifier<?>, Optional<Generator<T>>> resolved(Function<Generator, Generator<T>> mapper) {
+    public static <T, A> BiFunction<Registry, TypeIdentifier<A>, Optional<Generator<T>>> resolved(Function<Generator<A>, Generator<T>> mapper) {
       checkNotNull(mapper);
-      return (registry, firstType) ->
-          registry.lookup(firstType)
-              .map(mapper::apply);
+      return (registry, firstType) -> registry.lookup(firstType).map(mapper);
     }
 
-    public static <T> Function3<Registry, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<T>>> resolved(BiFunction<Generator, Generator, Generator<T>> mapper) {
+    public static <T, A, B> Function3<Registry, TypeIdentifier<A>, TypeIdentifier<B>, Optional<Generator<T>>> resolved(BiFunction<Generator<A>, Generator<B>, Generator<T>> mapper) {
       checkNotNull(mapper);
       return (registry, firstType, secondType) ->
           registry.lookup(firstType)
@@ -201,7 +199,7 @@ public final class Registries {
                   .map(secondGen -> mapper.apply(firstGen, secondGen)));
     }
 
-    public static <T> Function4<Registry, TypeIdentifier<?>, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<T>>> resolved(Function3<Generator, Generator, Generator, Generator<T>> mapper) {
+    public static <T, A, B, C> Function4<Registry, TypeIdentifier<A>, TypeIdentifier<B>, TypeIdentifier<C>, Optional<Generator<T>>> resolved(Function3<Generator<A>, Generator<B>, Generator<C>, Generator<T>> mapper) {
       checkNotNull(mapper);
       return (registry, firstType, secondType, thirdType) ->
           registry.lookup(firstType)
@@ -210,7 +208,7 @@ public final class Registries {
                       .map(thirdGen -> mapper.apply( firstGen, secondGen, thirdGen))));
     }
 
-    public static <T> Function5<Registry, TypeIdentifier<?>, TypeIdentifier<?>, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<T>>> resolved(Function4<Generator, Generator, Generator, Generator, Generator<T>> mapper) {
+    public static <T, A, B, C, D> Function5<Registry, TypeIdentifier<A>, TypeIdentifier<B>, TypeIdentifier<C>, TypeIdentifier<D>, Optional<Generator<T>>> resolved(Function4<Generator<A>, Generator<B>, Generator<C>, Generator<D>, Generator<T>> mapper) {
       checkNotNull(mapper);
       return (registry, firstType, secondType, thirdType, forthType) ->
           registry.lookup(firstType)
@@ -240,27 +238,27 @@ public final class Registries {
       return this;
     }
 
-    public <T> RegistryBuilder putDyn(Class<T> identifier, BiFunction<Registry, TypeIdentifier<?>, Optional<Generator<T>>> generatorFactory) {
+    public <T, A> RegistryBuilder putDyn(Class<? super T> identifier, BiFunction<Registry, TypeIdentifier<A>, Optional<Generator<T>>> generatorFactory) {
       return putDynamic(identifier, (registry, params) ->
-          params.size() == 1 ? generatorFactory.apply(registry, params.get(0)) : Optional.empty());
+          params.size() == 1 ? (Optional<Generator<T>>) ((BiFunction) generatorFactory).apply(registry, params.get(0)) : Optional.empty());
     }
 
-    public <T> RegistryBuilder putDyn(Class<T> identifier, Function3<Registry, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<T>>> generatorFactory) {
+    public <T, A, B> RegistryBuilder putDyn(Class<? super T> identifier, Function3<Registry, TypeIdentifier<A>, TypeIdentifier<B>, Optional<Generator<T>>> generatorFactory) {
       return putDynamic(identifier, (registry, params) ->
-          params.size() == 2 ? generatorFactory.apply(registry, params.get(0), params.get(1)) : Optional.empty());
+          params.size() == 2 ? (Optional<Generator<T>>) ((Function3) generatorFactory).apply(registry, params.get(0), params.get(1)) : Optional.empty());
     }
 
-    public <T> RegistryBuilder putDyn(Class<T> identifier, Function4<Registry, TypeIdentifier<?>, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<T>>> generatorFactory) {
+    public <T, A, B, C> RegistryBuilder putDyn(Class<? super T> identifier, Function4<Registry, TypeIdentifier<A>, TypeIdentifier<B>, TypeIdentifier<C>, Optional<Generator<T>>> generatorFactory) {
       return putDynamic(identifier, (registry, params) ->
-          params.size() == 3 ? generatorFactory.apply(registry, params.get(0), params.get(1), params.get(2)) : Optional.empty());
+          params.size() == 3 ? (Optional<Generator<T>>) ((Function4) generatorFactory).apply(registry, params.get(0), params.get(1), params.get(2)) : Optional.empty());
     }
 
-    public <T> RegistryBuilder putDyn(Class<T> identifier, Function5<Registry, TypeIdentifier<?>, TypeIdentifier<?>, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<T>>> generatorFactory) {
+    public <T, A, B, C, D> RegistryBuilder putDyn(Class<? super T> identifier, Function5<Registry, TypeIdentifier<A>, TypeIdentifier<B>, TypeIdentifier<C>, TypeIdentifier<D>, Optional<Generator<T>>> generatorFactory) {
       return putDynamic(identifier, (registry, params) ->
-          params.size() == 4 ? generatorFactory.apply(registry, params.get(0), params.get(1), params.get(2), params.get(3)) : Optional.empty());
+          params.size() == 4 ? (Optional<Generator<T>>) ((Function5) generatorFactory).apply(registry, params.get(0), params.get(1), params.get(2), params.get(3)) : Optional.empty());
     }
 
-    public <T> RegistryBuilder putDynamic(Class<T> identifier, BiFunction<Registry, List<TypeIdentifier<?>>, Optional<Generator<T>>> generatorFactory) {
+    public <T> RegistryBuilder putDynamic(Class<? super T> identifier, BiFunction<Registry, List<TypeIdentifier<?>>, Optional<Generator<T>>> generatorFactory) {
       dynamicBuilder.put(identifier, (BiFunction) generatorFactory);
       return this;
     }

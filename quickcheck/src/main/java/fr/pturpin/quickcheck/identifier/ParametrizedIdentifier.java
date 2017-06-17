@@ -4,13 +4,14 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Created by pturpin on 04/06/2017.
  */
-public class ParametrizedIdentifier<T> implements TypeIdentifier<T> {
+class ParametrizedIdentifier<T> implements TypeIdentifier<T> {
 
   private final TypeIdentifier<T> ownerIdentifier;
   private final List<TypeIdentifier<?>> parameters;
@@ -29,8 +30,14 @@ public class ParametrizedIdentifier<T> implements TypeIdentifier<T> {
     return ownerIdentifier;
   }
 
-  public List<TypeIdentifier<?>> getParameters() {
-    return parameters;
+  @Override
+  public int getNbParametrizedType() {
+    return parameters.size();
+  }
+
+  @Override
+  public Optional<List<TypeIdentifier<?>>> getParametrizedType() {
+    return Optional.of(parameters);
   }
 
   @Override
