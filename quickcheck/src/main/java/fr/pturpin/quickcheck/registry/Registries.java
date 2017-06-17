@@ -142,7 +142,7 @@ public final class Registries {
     }
   }
 
-  private static final class StaticRegistry implements Registry {
+  public static final class StaticRegistry implements Registry {
     private final ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map;
 
     private StaticRegistry(ImmutableMap<TypeIdentifier<?>, Function<Registry, Optional<Generator<?>>>> map) {
@@ -154,6 +154,10 @@ public final class Registries {
       Optional<Generator<?>> generator = Optional.ofNullable(map.get(identifier))
           .flatMap(f -> f.apply(root));
       return generator.map(Generator.class::cast);
+    }
+
+    public static <A, T> Function<Registry, Optional<Generator<T>>> resolved(TypeIdentifier<A> firstType, Function<Generator<A>, Generator<T>> mapper) {
+      return (Registry registry) -> registry.lookup(firstType).map(mapper);
     }
   }
 

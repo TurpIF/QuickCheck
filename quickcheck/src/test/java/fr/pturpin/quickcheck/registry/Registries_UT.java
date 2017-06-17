@@ -7,7 +7,7 @@ import com.google.common.collect.Sets;
 import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.generator.Generators;
 import fr.pturpin.quickcheck.generator.NumberGens;
-import fr.pturpin.quickcheck.generator.collection.ListGens;
+import fr.pturpin.quickcheck.generator.java.util.JavaUtils;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 import fr.pturpin.quickcheck.registry.Registries.RegistryBuilder;
 import org.junit.Assert;
@@ -273,7 +273,7 @@ public class Registries_UT {
   public void dynamicRegistryShouldCheckNumberOfParametrizedTypes() {
     Registry registry = Registries.builder()
         .put(classId(double.class), NumberGens.doubleGen())
-        .putDyn(List.class, resolved(gen -> Generators.map(gen, g -> ListGens.arrayListGen((Generator) g, constGen(10)))))
+        .putDyn(List.class, resolved(gen -> Generators.map(gen, g -> JavaUtils.arrayListGen((Generator) g, constGen(10)))))
         .build();
 
     Assert.assertFalse(registry.lookup(classId(List.class)).isPresent());
