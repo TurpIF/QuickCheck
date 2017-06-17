@@ -50,13 +50,15 @@ public final class DefaultRegistryFactory implements RegistryFactory {
         .put(classId(long.class), NumberGens.longGen())
         .put(classId(BigInteger.class), NumberGens.bigIntegerGen(bigIntegerRange))
         .put(classId(BigDecimal.class), NumberGens.bigDecimalGen(bigDecimalRange))
-        .putDyn(Supplier.class, resolved(gen -> Generators.<Object, Supplier>map(gen, v -> () -> v)));
+        .putDyn(Supplier.class, resolved(gen -> Generators.map(gen, v -> () -> v)));
 
     return putJavaUtils(builder).build();
   }
 
   private static RegistryBuilder putJavaUtils(RegistryBuilder builder) {
     Generator<Integer> sizeGen = NumberGens.integerGen(Ranges.closed(0, 100));
+
+    Function3<Registry, TypeIdentifier<Object>, TypeIdentifier<Object>, Optional<Generator<AbstractMap.SimpleEntry<Object, Object>>>> simpleGenGen = resolved(JavaUtils::simpleEntryGen);
 
     return builder
         .putDyn(Comparator.class, (registry, type) -> {
@@ -74,10 +76,10 @@ public final class DefaultRegistryFactory implements RegistryFactory {
         .putDyn(Collection.class, fromHierachy1(Set.class, List.class, Queue.class))
 
         .putDyn(Map.Entry.class, fromHierachy2(AbstractMap.SimpleEntry.class))
-        .putDyn(AbstractMap.SimpleEntry.class, resolved((keyGen, valueGen) -> JavaUtils.simpleEntryGen(keyGen, valueGen)))
+        .putDyn(AbstractMap.SimpleEntry.class, simpleGenGen)
 
         .putDyn(Map.class, fromHierachy2(HashMap.class, EnumMap.class, LinkedHashMap.class, SortedMap.class))
-        .putDyn((Class) EnumMap.class, (registry, keyId, valueId) -> {
+        .putDyn(EnumMap.class, (registry, keyId, valueId) -> {
           Class<?> keyClass = keyId.getTypeClass();
           if (!Enum.class.isAssignableFrom(keyClass)) {
             return Optional.empty();
@@ -86,30 +88,31 @@ public final class DefaultRegistryFactory implements RegistryFactory {
           return (Optional) mapGen(entryGen -> JavaUtils.enumMapGen(enumKeyClass, (Generator) entryGen, sizeGen))
               .apply(registry, keyId, valueId);
         })
-        .putDyn((Class) HashMap.class, mapGen(entryGen -> JavaUtils.hashMapGen(entryGen, sizeGen)))
-        .putDyn((Class) IdentityHashMap.class, mapGen(entryGen -> JavaUtils.identityHashMapGen(entryGen, sizeGen)))
-        .putDyn((Class) LinkedHashMap.class, mapGen(entryGen -> JavaUtils.linkedHashMapGen(entryGen, sizeGen)))
+        .putDyn(HashMap.class, mapGen(entryGen -> JavaUtils.hashMapGen(entryGen, sizeGen)))
+        .putDyn(IdentityHashMap.class, mapGen(entryGen -> JavaUtils.identityHashMapGen(entryGen, sizeGen)))
+        .putDyn(LinkedHashMap.class, mapGen(entryGen -> JavaUtils.linkedHashMapGen(entryGen, sizeGen)))
 
         .putDyn(SortedMap.class, fromHierachy2(NavigableMap.class))
         .putDyn(NavigableMap.class, fromHierachy2(TreeMap.class))
-        .putDyn((Class) TreeMap.class, sortedMapGen((entryGen, comparatorGen) -> JavaUtils.treeMapGen(entryGen, sizeGen, comparatorGen)))
+        .putDyn(TreeMap.class, sortedMapGen((entryGen, comparatorGen) -> JavaUtils.treeMapGen(entryGen, sizeGen, comparatorGen)))
 
         .putDyn(Set.class, fromHierachy1(HashSet.class, EnumSet.class, LinkedHashSet.class, SortedSet.class))
-        .putDyn((Class) EnumSet.class, (registry, elementId) -> {
+        .putDyn(EnumSet.class, (registry, elementId) -> {
           Class<?> elemClass = elementId.getTypeClass();
           if (!Enum.class.isAssignableFrom(elemClass)) {
             return Optional.empty();
           }
           Class<Enum> enumElemClass = (Class<Enum>) elemClass;
           return registry.lookup(elementId)
-              .map(elementGen -> JavaUtils.enumSetGen(enumElemClass, (Generator) elementGen, sizeGen));
+              .map(elementGen -> (Generator<Enum>) (Generator) elementGen)
+              .map(elementGen -> JavaUtils.enumSetGen(enumElemClass, elementGen, sizeGen));
         })
         .putDyn(HashSet.class, resolved(gen -> JavaUtils.hashSetGen(gen, sizeGen)))
         .putDyn(LinkedHashSet.class, resolved(gen -> JavaUtils.linkedHashSetGen(gen, sizeGen)))
 
         .putDyn(SortedSet.class, fromHierachy1(NavigableSet.class))
         .putDyn(NavigableSet.class, fromHierachy1(TreeSet.class))
-        .putDyn((Class) TreeSet.class, comparedGen((elementGen, comparatorGen) -> JavaUtils.treeSetGen(elementGen, sizeGen, comparatorGen)))
+        .putDyn(TreeSet.class, comparedGen((elementGen, comparatorGen) -> JavaUtils.treeSetGen(elementGen, sizeGen, comparatorGen)))
 
         .putDyn(List.class, fromHierachy1(ArrayList.class, LinkedList.class))
         .putDyn(ArrayList.class, resolved(gen -> JavaUtils.arrayListGen(gen, sizeGen)))
@@ -119,7 +122,7 @@ public final class DefaultRegistryFactory implements RegistryFactory {
         .putDyn(ArrayDeque.class, resolved(gen -> JavaUtils.arrayDequeGen(gen, sizeGen)))
 
         .putDyn(Queue.class, fromHierachy1(PriorityQueue.class, Deque.class))
-        .putDyn((Class) PriorityQueue.class, comparedGen((elementGen, comparatorGen) -> JavaUtils.priorityQueueGen(elementGen, sizeGen, comparatorGen)))
+        .putDyn(PriorityQueue.class, comparedGen((elementGen, comparatorGen) -> JavaUtils.priorityQueueGen(elementGen, sizeGen, comparatorGen)))
 
         .put(classId(BitSet.class), Registries.StaticRegistry.resolved(classId(long.class), gen -> JavaUtils.bitSetGen(gen, sizeGen)))
         .put(classId(Currency.class), JavaUtils.availableCurrencyGen())
@@ -130,10 +133,10 @@ public final class DefaultRegistryFactory implements RegistryFactory {
   }
 
   @SafeVarargs
-  private static <T> BiFunction<Registry, TypeIdentifier<?>, Optional<Generator<T>>> fromHierachy1(Class<? extends T>... klasses) {
+  private static <T, A> BiFunction<Registry, TypeIdentifier<A>, Optional<Generator<T>>> fromHierachy1(Class<? extends T>... klasses) {
     return (registry, firstType) -> {
       List<Generator<? extends T>> generators = Arrays.stream(klasses)
-          .map(klass -> registry.lookup(paramId(klass, firstType)))
+          .map(klass -> registry.lookup(paramId((Class<T>) klass, firstType)))
           .flatMap(Streams::stream)
           .collect(Collectors.toList());
       return generators.isEmpty() ? Optional.empty() : Optional.of(Generators.oneGenOf(generators));
@@ -141,24 +144,25 @@ public final class DefaultRegistryFactory implements RegistryFactory {
   }
 
   @SafeVarargs
-  private static <T> Function3<Registry, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<T>>> fromHierachy2(Class<? extends T>... klasses) {
+  private static <T, A, B> Function3<Registry, TypeIdentifier<A>, TypeIdentifier<B>, Optional<Generator<T>>> fromHierachy2(Class<? extends T>... klasses) {
     return (registry, firstType, secondType) -> {
       List<Generator<? extends T>> generators = Arrays.stream(klasses)
-          .map(klass -> registry.lookup(paramId(klass, firstType, secondType)))
+          .map(klass -> registry.lookup(paramId((Class<T>) klass, firstType, secondType)))
           .flatMap(Streams::stream)
           .collect(Collectors.toList());
       return generators.isEmpty() ? Optional.empty() : Optional.of(Generators.oneGenOf(generators));
     };
   }
 
-  private static <K, V, M extends Map<K, V>> Function3<Registry, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<M>>> mapGen(Function<Generator<Map.Entry<K, V>>, Generator<M>> mapper) {
+  private static <K, V, M extends Map<K, V>> Function3<Registry, TypeIdentifier<K>, TypeIdentifier<V>, Optional<Generator<M>>> mapGen(Function<Generator<Map.Entry<K, V>>, Generator<M>> mapper) {
     return (registry, keyId, valueId) -> registry.lookup(paramId(Map.Entry.class, keyId, valueId))
         .map(entryGen -> {
-          return mapper.apply((Generator) entryGen);
+          Generator<Map.Entry<K, V>> castedEntryGen = (Generator) entryGen;
+          return mapper.apply(castedEntryGen);
         });
   }
 
-  private static <K, V, M extends Map<K, V>> Function3<Registry, TypeIdentifier<?>, TypeIdentifier<?>, Optional<Generator<M>>> sortedMapGen(BiFunction<Generator<Map.Entry<K, V>>, Generator<Comparator<? super K>>, Generator<M>> mapper) {
+  private static <K, V, M extends Map<K, V>> Function3<Registry, TypeIdentifier<K>, TypeIdentifier<V>, Optional<Generator<M>>> sortedMapGen(BiFunction<Generator<Map.Entry<K, V>>, Generator<Comparator<? super K>>, Generator<M>> mapper) {
     return (registry, keyId, valueId) -> registry.lookup(paramId(Map.Entry.class, keyId, valueId))
         .flatMap(entryGen -> registry.lookup(paramId(Comparator.class, keyId))
             .map(comparatorGen -> {
@@ -168,13 +172,12 @@ public final class DefaultRegistryFactory implements RegistryFactory {
             }));
   }
 
-  private static <T, E, C> BiFunction<Registry, TypeIdentifier<?>, Optional<Generator<T>>> comparedGen(BiFunction<Generator<E>, Generator<Comparator<? super C>>, Generator<T>> mapper) {
+  private static <T, E, C> BiFunction<Registry, TypeIdentifier<E>, Optional<Generator<T>>> comparedGen(BiFunction<Generator<E>, Generator<Comparator<? super C>>, Generator<T>> mapper) {
     return (registry, typeId) -> registry.lookup(typeId)
         .flatMap(elementGen -> registry.lookup(paramId(Comparator.class, typeId))
             .map(comparatorGen -> {
-              Generator<E> elementG = (Generator) elementGen;
               Generator<Comparator<? super C>> comparatorG = (Generator) comparatorGen;
-              return mapper.apply(elementG, comparatorG);
+              return mapper.apply(elementGen, comparatorG);
             }));
   }
 }
