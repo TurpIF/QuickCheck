@@ -1,22 +1,18 @@
 package fr.pturpin.quickcheck.identifier;
 
-import com.google.common.collect.ImmutableList;
-
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 final class ClassIdentifier<T> implements TypeIdentifier<T> {
   private final Class<T> klass;
-  private final int nbParametrizedType;
 
-  ClassIdentifier(Class<T> klass, int nbParametrizedType) {
-    checkArgument(nbParametrizedType >= 0);
+  ClassIdentifier(Class<T> klass) {
     this.klass = checkNotNull(klass);
-    this.nbParametrizedType = nbParametrizedType;
   }
 
   @Override
@@ -26,12 +22,14 @@ final class ClassIdentifier<T> implements TypeIdentifier<T> {
 
   @Override
   public int getNbParametrizedType() {
-    return nbParametrizedType;
+    return klass.getTypeParameters().length;
   }
 
   @Override
   public Optional<List<TypeIdentifier<?>>> getParametrizedType() {
-    return nbParametrizedType == 0 ? Optional.of(ImmutableList.of()) : Optional.empty();
+    return Optional.of(Arrays.stream(klass.getTypeParameters())
+        .map(Identifiers::wildcardId)
+        .collect(toImmutableList()));
   }
 
   @Override
@@ -43,11 +41,16 @@ final class ClassIdentifier<T> implements TypeIdentifier<T> {
       return false;
     }
     ClassIdentifier other = (ClassIdentifier) obj;
-    return klass.equals(other.klass) && nbParametrizedType == other.nbParametrizedType;
+    return klass.equals(other.klass);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(klass, nbParametrizedType);
+    return Objects.hash(klass);
+  }
+
+  @Override
+  public String toString() {
+    return TypeIdentifier.idToString(this);
   }
 }

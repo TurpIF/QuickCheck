@@ -24,6 +24,7 @@ import static fr.pturpin.quickcheck.generator.Generators.constGen;
 import static fr.pturpin.quickcheck.generator.Generators.oneOf;
 import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
 import static fr.pturpin.quickcheck.identifier.Identifiers.paramId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.wildcardId;
 import static fr.pturpin.quickcheck.registry.Registries.DynamicRegistry.resolved;
 import static fr.pturpin.quickcheck.registry.Registries.alternatives;
 
@@ -276,9 +277,24 @@ public class Registries_UT {
         .putDyn(List.class, resolved(gen -> JavaUtils.arrayListGen(gen, constGen(10))))
         .build();
 
-    Assert.assertFalse(registry.lookup(classId(List.class)).isPresent());
     Assert.assertTrue(registry.lookup(paramId(List.class, double.class)).isPresent());
     Assert.assertFalse(registry.lookup(paramId(List.class, double.class, double.class)).isPresent());
+  }
+
+  @Test
+  public void dynamicRegistryShouldAcceptUnspecifiedGenericTypes() {
+    Registry registry = Registries.builder()
+        .put(classId(double.class), NumberGens.doubleGen())
+        .putDyn(List.class, resolved(gen -> JavaUtils.arrayListGen(gen, constGen(10))))
+        .putDyn(Map.class, resolved((keyGen, valueGen) -> JavaUtils.hashMapGen(JavaUtils.simpleEntryGen(keyGen, valueGen), constGen(10))))
+        .build();
+
+    Assert.assertTrue(registry.lookup(classId(List.class)).isPresent());
+    Assert.assertTrue(registry.lookup(classId(Map.class)).isPresent());
+    Assert.assertTrue(registry.lookup(paramId(Map.class, classId(double.class), classId(double.class))).isPresent());
+    Assert.assertTrue(registry.lookup(paramId(Map.class, wildcardId("A"), classId(double.class))).isPresent());
+    Assert.assertTrue(registry.lookup(paramId(Map.class, classId(double.class), wildcardId("1"))).isPresent());
+    Assert.assertTrue(registry.lookup(paramId(Map.class, wildcardId("A"), paramId(List.class, wildcardId("B")))).isPresent());
   }
 
   private static void assertEqualsRegistries(Iterable<TypeIdentifier<?>> identifiers, Registry left, Registry right) {

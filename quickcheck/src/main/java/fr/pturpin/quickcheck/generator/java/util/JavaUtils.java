@@ -1,12 +1,18 @@
 package fr.pturpin.quickcheck.generator.java.util;
 
 import com.google.common.collect.Streams;
+import fr.pturpin.quickcheck.annotation.Gen;
+import fr.pturpin.quickcheck.functional.Function3;
 import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.generator.Generators;
 import fr.pturpin.quickcheck.generator.collection.StreamGens;
+import fr.pturpin.quickcheck.identifier.TypeIdentifier;
+import fr.pturpin.quickcheck.registry.Registries;
+import fr.pturpin.quickcheck.registry.Registry;
 
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collector;
@@ -16,6 +22,8 @@ import java.util.stream.LongStream;
 
 import static com.google.common.base.Preconditions.*;
 import static fr.pturpin.quickcheck.generator.CastGens.intToLong;
+import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
+import static fr.pturpin.quickcheck.identifier.Identifiers.paramId;
 
 /**
  * Created by pturpin on 12/06/2017.
@@ -41,6 +49,7 @@ public class JavaUtils {
    * @return array deque generator
    * @throws NullPointerException if element generator or size generator are null
    */
+  @Gen
   public static <T> Generator<ArrayDeque<T>> arrayDequeGen(Generator<T> elementGen, Generator<Integer> sizeGen) {
     return collectedGen(elementGen, sizeGen, Collectors.toCollection(ArrayDeque::new));
   }
@@ -60,6 +69,7 @@ public class JavaUtils {
    * @return array list generator
    * @throws NullPointerException if element generator or size generator are null
    */
+  @Gen
   public static <T> Generator<ArrayList<T>> arrayListGen(Generator<T> elementGen, Generator<Integer> sizeGen) {
     return collectedGen(elementGen, sizeGen, Collectors.toCollection(ArrayList::new));
   }
@@ -77,6 +87,7 @@ public class JavaUtils {
    * @return bitset generator
    * @throws NullPointerException if element generator or size generator are null
    */
+  @Gen
   public static Generator<BitSet> bitSetGen(Generator<Long> bitsGen, Generator<Integer> sizeGen) {
     checkNotNull(bitsGen);
     checkNotNull(sizeGen);
@@ -100,6 +111,7 @@ public class JavaUtils {
    *
    * @return currency generator
    */
+  @Gen
   public static Generator<Currency> availableCurrencyGen() {
     return Generators.oneOf(Currency.getAvailableCurrencies());
   }
@@ -110,6 +122,7 @@ public class JavaUtils {
    * @param <T> Type of compared object
    * @return comparator generator
    */
+  @Gen
   public static <T extends Comparable<T>> Generator<Comparator<T>> comparatorGen() {
     return Generators.oneOf(Comparator.naturalOrder(), Comparator.reverseOrder());
   }
@@ -259,6 +272,7 @@ public class JavaUtils {
    * @return hash map generator
    * @throws NullPointerException if entry generator or size generator are null
    */
+  @Gen
   public static <K, V> Generator<HashMap<K, V>> hashMapGen(Generator<? extends Map.Entry<K, V>> entryGen, Generator<Integer> sizeGen) {
     return hashMapGen(entryGen, sizeGen, DEFAULT_MAX_TRY);
   }
@@ -303,6 +317,7 @@ public class JavaUtils {
    * @return hash set generator
    * @throws NullPointerException if element generator or size generator are null
    */
+  @Gen
   public static <T> Generator<HashSet<T>> hashSetGen(Generator<T> elementGen, Generator<Integer> sizeGen) {
     return mutableSetGen(HashSet::new, elementGen, sizeGen, DEFAULT_MAX_TRY);
   }
@@ -353,6 +368,7 @@ public class JavaUtils {
    * @return identity hash map generator
    * @throws NullPointerException if entry generator or size generator are null
    */
+  @Gen
   public static <K, V> Generator<IdentityHashMap<K, V>> identityHashMapGen(Generator<? extends Map.Entry<K, V>> entryGen, Generator<Integer> sizeGen) {
     return identityHashMapGen(entryGen, sizeGen, DEFAULT_MAX_TRY);
   }
@@ -403,6 +419,7 @@ public class JavaUtils {
    * @return linked hash map generator
    * @throws NullPointerException if entry generator or size generator are null
    */
+  @Gen
   public static <K, V> Generator<LinkedHashMap<K, V>> linkedHashMapGen(Generator<? extends Map.Entry<K, V>> entryGen, Generator<Integer> sizeGen) {
     return linkedHashMapGen(entryGen, sizeGen, DEFAULT_MAX_TRY);
   }
@@ -447,6 +464,7 @@ public class JavaUtils {
    * @return linked hash set generator
    * @throws NullPointerException if element generator or size generator are null
    */
+  @Gen
   public static <T> Generator<LinkedHashSet<T>> linkedHashSetGen(Generator<T> elementGen, Generator<Integer> sizeGen) {
     return linkedHashSetGen(elementGen, sizeGen, DEFAULT_MAX_TRY);
   }
@@ -466,6 +484,7 @@ public class JavaUtils {
    * @return linked list generator
    * @throws NullPointerException if element generator or size generator are null
    */
+  @Gen
   public static <T> Generator<LinkedList<T>> linkedListGen(Generator<T> elementGen, Generator<Integer> sizeGen) {
     return collectedGen(elementGen, sizeGen, Collectors.toCollection(LinkedList::new));
   }
@@ -478,6 +497,7 @@ public class JavaUtils {
    *
    * @return locale generator
    */
+  @Gen
   public static Generator<Locale> isoLocaleGen() {
     List<Locale> locales = Streams.zip(Arrays.stream(Locale.getISOLanguages()), Arrays.stream(Locale.getISOCountries()), Locale::new)
         .collect(Collectors.toList());
@@ -499,6 +519,7 @@ public class JavaUtils {
    * @throws NullPointerException if any given generator is null
    *
    */
+  @Gen
   public static <T> Generator<PriorityQueue<T>> priorityQueueGen(Generator<T> elementGen, Generator<Integer> sizeGen, Generator<Comparator<? super T>> comparatorGen) {
     checkNotNull(comparatorGen);
     Generator<ArrayList<T>> listGen = arrayListGen(elementGen, sizeGen);
@@ -516,6 +537,7 @@ public class JavaUtils {
    * @return random generator
    * @throws NullPointerException if seed generator if null
    */
+  @Gen
   public static Generator<Random> randomGen(Generator<Long> seedGen) {
     return Generators.map(seedGen, Random::new);
   }
@@ -531,12 +553,14 @@ public class JavaUtils {
    * @return simple entry generator
    * @throws NullPointerException if key or value generators are null
    */
+  @Gen
   public static <K, V> Generator<AbstractMap.SimpleEntry<K, V>> simpleEntryGen(Generator<K> keyGen, Generator<V> valueGen) {
     checkNotNull(keyGen);
     checkNotNull(valueGen);
     return re -> new AbstractMap.SimpleEntry<>(keyGen.get(re), valueGen.get(re));
   }
 
+  @Gen
   public static Generator<TimeZone> availableTimeZoneGen() {
     List<TimeZone> timeZones = Arrays.stream(TimeZone.getAvailableIDs())
         .map(TimeZone::getTimeZone)
@@ -609,6 +633,7 @@ public class JavaUtils {
    * @throws NullPointerException if entry generator, size generator or comparator generator are null
    * @throws IllegalArgumentException if maxTry is negative
    */
+  @Gen
   public static <K, V> Generator<TreeMap<K, V>> treeMapGen(Generator<? extends Map.Entry<K, V>> entryGen, Generator<Integer> sizeGen, Generator<Comparator<? super K>> comparatorGen) {
     return treeMapGen(entryGen, sizeGen, comparatorGen, DEFAULT_MAX_TRY);
   }
@@ -663,6 +688,7 @@ public class JavaUtils {
    * @throws NullPointerException if element generator or size generator are null
    * @throws IllegalArgumentException if maxTry is negative
    */
+  @Gen
   public static <T> Generator<TreeSet<T>> treeSetGen(Generator<T> elementGen, Generator<Integer> sizeGen, Generator<Comparator<? super T>> comparatorGen) {
     return treeSetGen(elementGen, sizeGen, comparatorGen, DEFAULT_MAX_TRY);
   }
@@ -674,9 +700,86 @@ public class JavaUtils {
    * @return uuid generator
    * @throws NullPointerException if long generator is null
    */
+  @Gen
   public static Generator<UUID> randomUUIDGen(Generator<Long> longGen) {
     checkNotNull(longGen);
     return re -> new UUID(longGen.get(re), longGen.get(re));
+  }
+
+  public static Registry utilsRegistry() {
+    return Registries.alternatives(
+        Registries.forClass(JavaUtils.class),
+        getHierarchyRegistry(),
+        getEnumRegistry());
+  }
+
+  private static Registry getHierarchyRegistry() {
+    return Registries.builder()
+        .putDyn(Iterator.class, fromHierachy1(Iterable.class).andThen(optGen -> optGen.map(gen -> Generators.map(gen, Iterable::iterator))))
+        .putDyn(ListIterator.class, fromHierachy1(List.class).andThen(optGen -> optGen.map(gen -> Generators.map(gen, List::listIterator))))
+        .putDyn(Iterable.class, fromHierachy1(Collection.class))
+        .putDyn(Collection.class, fromHierachy1(Set.class, List.class, Queue.class))
+        .putDyn(Map.Entry.class, fromHierachy2(AbstractMap.SimpleEntry.class))
+        .putDyn(Map.class, fromHierachy2(HashMap.class, EnumMap.class, LinkedHashMap.class, SortedMap.class))
+        .putDyn(SortedMap.class, fromHierachy2(NavigableMap.class))
+        .putDyn(NavigableMap.class, fromHierachy2(TreeMap.class))
+        .putDyn(Set.class, fromHierachy1(HashSet.class, EnumSet.class, LinkedHashSet.class, SortedSet.class))
+        .putDyn(SortedSet.class, fromHierachy1(NavigableSet.class))
+        .putDyn(NavigableSet.class, fromHierachy1(TreeSet.class))
+        .putDyn(List.class, fromHierachy1(ArrayList.class, LinkedList.class))
+        .putDyn(Deque.class, fromHierachy1(ArrayDeque.class))
+        .putDyn(Queue.class, fromHierachy1(PriorityQueue.class, Deque.class))
+        .build();
+  }
+
+  private static Registry getEnumRegistry() {
+    return Registries.builder()
+        .putDyn(EnumMap.class, (registry, keyId, valueId) -> {
+          Class<?> keyClass = keyId.getTypeClass();
+          if (!Enum.class.isAssignableFrom(keyClass)) {
+            return Optional.empty();
+          }
+          Class<Enum> enumKeyClass = (Class<Enum>) keyClass;
+          return (Optional) registry.lookup(classId(int.class)).flatMap(sizeGen ->
+              registry.lookup(paramId(Map.Entry.class, keyId, valueId)).map(entryGen -> {
+                Generator<Map.Entry<Enum, Object>> castedEntryGen = (Generator) entryGen;
+                return JavaUtils.enumMapGen(enumKeyClass, castedEntryGen, sizeGen);
+              }));
+        })
+        .putDyn(EnumSet.class, (registry, elementId) -> {
+          Class<?> elemClass = elementId.getTypeClass();
+          if (!Enum.class.isAssignableFrom(elemClass)) {
+            return Optional.empty();
+          }
+          Class<Enum> enumElemClass = (Class<Enum>) elemClass;
+          return registry.lookup(classId(int.class)).flatMap(sizeGen ->
+              registry.lookup(elementId)
+                  .map(elementGen -> (Generator<Enum>) (Generator) elementGen)
+                  .map(elementGen -> JavaUtils.enumSetGen(enumElemClass, elementGen, sizeGen)));
+        })
+        .build();
+  }
+
+  @SafeVarargs
+  private static <T, A> BiFunction<Registry, TypeIdentifier<A>, Optional<Generator<T>>> fromHierachy1(Class<? extends T>... klasses) {
+    return (registry, firstType) -> {
+      List<Generator<? extends T>> generators = Arrays.stream(klasses)
+          .map(klass -> registry.lookup(paramId((Class<T>) klass, firstType)))
+          .flatMap(Streams::stream)
+          .collect(Collectors.toList());
+      return generators.isEmpty() ? Optional.empty() : Optional.of(Generators.oneGenOf(generators));
+    };
+  }
+
+  @SafeVarargs
+  private static <T, A, B> Function3<Registry, TypeIdentifier<A>, TypeIdentifier<B>, Optional<Generator<T>>> fromHierachy2(Class<? extends T>... klasses) {
+    return (registry, firstType, secondType) -> {
+      List<Generator<? extends T>> generators = Arrays.stream(klasses)
+          .map(klass -> registry.lookup(paramId((Class<T>) klass, firstType, secondType)))
+          .flatMap(Streams::stream)
+          .collect(Collectors.toList());
+      return generators.isEmpty() ? Optional.empty() : Optional.of(Generators.oneGenOf(generators));
+    };
   }
 
   private static <K, V, M extends Map<K, V>> Generator<M> mutableMapGen(IntFunction<M> factory, Generator<? extends Map.Entry<K, V>> entryGen, Generator<Integer> sizeGen, int maxTry) {
