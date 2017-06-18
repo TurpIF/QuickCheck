@@ -12,10 +12,27 @@ import java.util.Optional;
  */
 public interface Registry {
 
-  // should not be implemented
+  /**
+   * Try to fetch a generator with the given identifier in this registry.
+   *
+   * <b>This default method should not be overridden by implementations.</b>
+   *
+   * @param identifier identifier of generator to fetch
+   * @param <T> type of elements yield by the generator
+   * @return either empty or the found generator
+   */
   default <T> Optional<Generator<T>> lookup(TypeIdentifier<T> identifier) {
     return recursiveLookup(this, identifier);
   }
 
+  /**
+   * Try to fetch a generator with the given identifier in this registry.
+   * If the found generator need other generator as dependencies, it may find it recursively in given root registry.
+   *
+   * @param root root registry to use for recursive dependency lookup up
+   * @param identifier identifier of generator to fetch
+   * @param <T> type of elements yield by the generator
+   * @return either empty of the found generator
+   */
   <T> Optional<Generator<T>> recursiveLookup(Registry root, TypeIdentifier<T> identifier);
 }
