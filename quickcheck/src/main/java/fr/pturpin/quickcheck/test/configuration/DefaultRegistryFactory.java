@@ -8,6 +8,7 @@ import fr.pturpin.quickcheck.generator.Generator;
 import fr.pturpin.quickcheck.generator.Generators;
 import fr.pturpin.quickcheck.generator.NumberGens;
 import fr.pturpin.quickcheck.generator.java.util.JavaUtils;
+import fr.pturpin.quickcheck.generator.java.util.function.FunctionGen;
 import fr.pturpin.quickcheck.identifier.TypeIdentifier;
 import fr.pturpin.quickcheck.registry.Registries;
 import fr.pturpin.quickcheck.registry.Registries.RegistryBuilder;
@@ -18,7 +19,6 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
@@ -50,9 +50,9 @@ public final class DefaultRegistryFactory implements RegistryFactory {
         .put(classId(long.class), NumberGens.longGen())
         .put(classId(BigInteger.class), NumberGens.bigIntegerGen(bigIntegerRange))
         .put(classId(BigDecimal.class), NumberGens.bigDecimalGen(bigDecimalRange))
-        .putDyn(Supplier.class, resolved(gen -> Generators.map(gen, v -> () -> v)));
+        .put(classId(boolean.class), Generators.coin(0.5));
 
-    return putJavaUtils(builder).build();
+    return Registries.alternatives(putJavaUtils(builder).build(), FunctionGen.functionsRegistry());
   }
 
   private static RegistryBuilder putJavaUtils(RegistryBuilder builder) {
