@@ -1,11 +1,12 @@
 package fr.pturpin.quickcheck.base;
 
 import fr.pturpin.quickcheck.functional.Checked.CheckedFunction;
-import fr.pturpin.quickcheck.functional.Checked.CheckedSupplier;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -31,22 +32,31 @@ public final class Reflections {
     }
   }
 
-  public static CheckedSupplier<Object, ReflectiveOperationException> invoker0(Method method, Object instance) {
+  public static <K, R> Function<K, R> uncheckedFieldGetter(Class<K> klass, String fieldName) {
+    Field field;
+    try {
+      field = klass.getDeclaredField(fieldName);
+    } catch (NoSuchFieldException e) {
+      throw new RuntimeException(e);
+    }
+    field.setAccessible(true);
+
+    return instance -> {
+      try {
+        return (R) field.get(instance);
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      }
+    };
+  }
+
+  public static CheckedFunction<Object[], Object, ReflectiveOperationException> invoker(Method method, Object instance) {
     checkInvocation(method, instance);
-    return () -> method.invoke(instance);
+    return arguments -> method.invoke(instance, (Object[]) arguments);
   }
 
-  public static CheckedSupplier<Object, ReflectiveOperationException> invoker0(Method method) {
-    return invoker0(method, null);
-  }
-
-  public static <T> CheckedFunction<T, Object, ReflectiveOperationException> invoker1(Method method, Object instance) {
-    checkInvocation(method, instance);
-    return arguments -> method.invoke(instance, arguments);
-  }
-
-  public static <T> CheckedFunction<T, Object, ReflectiveOperationException> invoker1(Method method) {
-    return invoker1(method, null);
+  public static CheckedFunction<Object[], Object, ReflectiveOperationException> invoker(Method method) {
+    return invoker(method, null);
   }
 
   private static void checkInvocation(Method method, Object instance) {

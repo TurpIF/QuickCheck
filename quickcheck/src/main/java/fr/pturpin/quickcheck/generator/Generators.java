@@ -2,8 +2,12 @@ package fr.pturpin.quickcheck.generator;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import fr.pturpin.quickcheck.base.Reflections;
 
 import java.util.Collection;
+import java.util.Objects;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -265,6 +269,55 @@ public final class Generators {
     checkNotNull(generator);
     checkNotNull(mapper);
     return re -> mapper.apply(generator.get(re));
+  }
+
+  /**
+   * Transformed generator using given generator as base and mapping by the given function.
+   *
+   * @param generator base generator
+   * @param binder function mapping all yielded value of the generator to a new generator
+   * @param <T> type of elements yielded by the generator
+   * @param <R> output type of mapped elements
+   * @return bound generator
+   * @throws NullPointerException if the generator of the function are null
+   */
+  public static <T, R> Generator<R> flatMap(Generator<? extends T> generator, Function<T, Generator<R>> binder) {
+    checkNotNull(generator);
+    checkNotNull(binder);
+    return re -> binder.apply(generator.get(re)).get(re);
+  }
+
+  /**
+   * Returns a new coarbitrary generator used to create functional generator of type a -> b.
+   *
+   * The produced generator used the {@link Object#hashCode()} of the input value to perturb the random generator.
+   * With the perturbed random generator, it fetch value from output generator.
+   * The random generator state is restored after each call.
+   *
+   * It's guarantee that equal elements (precisely with same hash code) implies a constant generated output
+   * when using same Random implementation.
+   *
+   * @param input value
+   * @param outputGen generator of output values
+   * @param <T> type of output
+   * @return coarbitrary generator
+   */
+  public static <T> Generator<T> coGenerator(Object input, Generator<T> outputGen) {
+    checkNotNull(outputGen);
+    int newSeed = Objects.hashCode(input);
+
+    Function<Random, AtomicLong> seedGetter = Reflections.uncheckedFieldGetter(Random.class, "seed");
+    return re -> {
+      long previousSeed = seedGetter.apply(re).get();
+      T out;
+      try {
+        re.setSeed(newSeed);
+        out = outputGen.get(re);
+      } finally {
+        re.setSeed(previousSeed);
+      }
+      return out;
+    };
   }
 
 }
