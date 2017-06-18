@@ -13,8 +13,8 @@ import org.junit.Test;
 import java.util.function.*;
 import java.util.stream.Stream;
 
-import static fr.pturpin.quickcheck.generator.RegistryAssertions.assertIsInRegistry;
-import static fr.pturpin.quickcheck.generator.RegistryAssertions.getIdentifier;
+import static fr.pturpin.quickcheck.generator.GeneratorAssertions.assertIsInRegistry;
+import static fr.pturpin.quickcheck.generator.GeneratorAssertions.fillIdentifier;
 import static fr.pturpin.quickcheck.identifier.Identifiers.classId;
 
 /**
@@ -211,7 +211,7 @@ public class FunctionGen_UT {
   }
 
   private static <T> void assertIsInRegistries(Class<T> klass) {
-    getRegistries().forEach(registry -> assertIsInRegistry(registry, klass, k -> getIdentifier(k, PARAM_FILLER)));
+    getRegistries().forEach(registry -> assertIsInRegistry(registry, klass, k -> fillIdentifier(k, PARAM_FILLER)));
   }
 
 }

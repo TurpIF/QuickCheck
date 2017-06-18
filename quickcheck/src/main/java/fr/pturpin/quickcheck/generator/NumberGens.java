@@ -1,16 +1,13 @@
 package fr.pturpin.quickcheck.generator;
 
-import com.google.common.base.Preconditions;
 import fr.pturpin.quickcheck.base.Ranges;
 import fr.pturpin.quickcheck.base.Ranges.DoubleRange;
 import fr.pturpin.quickcheck.base.Ranges.IntRange;
 import fr.pturpin.quickcheck.base.Ranges.LongRange;
-import fr.pturpin.quickcheck.base.Ranges.Range;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Random;
-import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Double.isFinite;
@@ -173,96 +170,5 @@ public final class NumberGens {
     return Generators.oneOf(Double.MIN_VALUE, Double.MAX_VALUE,
         Double.MIN_NORMAL, Double.NaN, 0.d, -0.d,
         Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY);
-  }
-
-  /**
-   * Constructs a new big integer double generators bounded by given range.
-   *
-   * @param range range to bound the generated value
-   * @return bounded uniform big integer generators
-   * @throws IllegalArgumentException if given range is empty
-   * @throws NullPointerException if given range is null
-   */
-  public static Generator<BigInteger> bigIntegerGen(Range<BigInteger> range) {
-    Preconditions.checkArgument(!range.isEmpty());
-
-    if (!range.isLeftClosed() || !range.isRightClosed()) {
-      Predicate<BigInteger> leftPredicate = !range.isLeftClosed()
-          ? value -> range.getLeft().compareTo(value) != 0
-          : value -> true;
-      Predicate<BigInteger> rightPredicate = !range.isRightClosed()
-          ? value -> range.getRight().compareTo(value) != 0
-          : value -> true;
-
-      return Generators.filter(bigIntegerGen(Ranges.closed(range.getLeft(), range.getRight())), leftPredicate.and(rightPredicate));
-    }
-
-    BigInteger min = range.getLeft();
-    BigInteger max = range.getRight();
-
-    if (min.compareTo(max) == 0) {
-      return Generators.constGen(max);
-    } else if (max.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0
-        && min.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) >= 0) {
-      return Generators.map(longGen(Ranges.closed(min.longValue(), max.longValue())), BigInteger::valueOf);
-    }
-
-    BigInteger delta = max.subtract(min);
-    int deltaNumBits = delta.bitCount();
-    Generator<Integer> numBitsGen = integerGen(Ranges.closed(0, deltaNumBits));
-
-    return re -> {
-      BigInteger generated = new BigInteger(numBitsGen.get(re), re);
-      return generated.mod(delta).add(min);
-    };
-  }
-
-  /**
-   * Constructs a new uniform big decimal generators bounded by given range.
-   *
-   * @param range range to bound the generated value
-   * @return bounded uniform big decimal generators
-   * @throws IllegalArgumentException if given range is empty
-   * @throws NullPointerException if given range is null
-   */
-  public static Generator<BigDecimal> bigDecimalGen(Range<BigDecimal> range) {
-    checkArgument(!range.isEmpty());
-
-    if (!range.isLeftClosed() || !range.isRightClosed()) {
-      Predicate<BigDecimal> leftPredicate = !range.isLeftClosed()
-          ? value -> range.getLeft().compareTo(value) != 0
-          : value -> true;
-      Predicate<BigDecimal> rightPredicate = !range.isRightClosed()
-          ? value -> range.getRight().compareTo(value) != 0
-          : value -> true;
-
-      return Generators.filter(bigDecimalGen(Ranges.closed(range.getLeft(), range.getRight())), leftPredicate.and(rightPredicate));
-    }
-
-    BigDecimal min = range.getLeft();
-    BigDecimal max = range.getRight();
-
-    if (min.compareTo(max) == 0) {
-      return Generators.constGen(min);
-    }
-
-    BigInteger minInt = min.unscaledValue();
-    BigInteger maxInt = max.unscaledValue();
-    Generator<BigInteger> bigIntGen = bigIntegerGen(Ranges.closed(minInt.min(maxInt), minInt.max(maxInt)));
-
-    int minScale = min.scale();
-    int maxScale = max.scale();
-    Generator<Integer> scaleGen = minScale == maxScale
-        ? Generators.constGen(minScale)
-        : integerGen(Ranges.closed(Math.min(minScale, maxScale), Math.max(minScale, maxScale)));
-
-    BigDecimal delta = max.subtract(min);
-
-    return re -> {
-      BigDecimal generated = new BigDecimal(bigIntGen.get(re), scaleGen.get(re));
-      BigDecimal remainder = generated.remainder(delta);
-      BigDecimal modulus = remainder.signum() >= 0 ? remainder : remainder.add(delta);
-      return modulus.add(min);
-    };
   }
 }

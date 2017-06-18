@@ -1,12 +1,13 @@
 package fr.pturpin.quickcheck.generator;
 
 import com.google.common.collect.ImmutableSet;
+import fr.pturpin.quickcheck.assertion.Assertions;
 import fr.pturpin.quickcheck.base.Ranges;
 import fr.pturpin.quickcheck.base.Ranges.DoubleRange;
 import fr.pturpin.quickcheck.base.Ranges.IntRange;
 import fr.pturpin.quickcheck.base.Ranges.LongRange;
 import fr.pturpin.quickcheck.base.Ranges.Range;
-import fr.pturpin.quickcheck.assertion.Assertions;
+import fr.pturpin.quickcheck.generator.java.math.JavaMaths;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -14,11 +15,13 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.function.Consumer;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
+
+import static fr.pturpin.quickcheck.generator.GeneratorAssertions.assertNotNull;
+import static fr.pturpin.quickcheck.generator.GeneratorAssertions.assertProperty;
 
 /**
  * Created by pturpin on 10/05/2017.
@@ -26,7 +29,6 @@ import java.util.stream.Stream;
 public class NumberGens_UT {
 
   private static final long SEED = 0L;
-  private static final long NB_SAMPLES = 1000;
   private static final long NB_BOUNDS = 20;
 
   @Test
@@ -91,7 +93,7 @@ public class NumberGens_UT {
   @Test
   public void boundedBigIntegerGenShouldBeBounded() {
     bigIntegerRanges().forEach(range -> {
-      Generator<BigInteger> generator = NumberGens.bigIntegerGen(range);
+      Generator<BigInteger> generator = JavaMaths.bigIntegerGen(range);
       assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
@@ -99,7 +101,7 @@ public class NumberGens_UT {
   @Test
   public void boundedBigDecimalGenShouldBeBounded() {
     bigDecimalRanges().forEach(range -> {
-      Generator<BigDecimal> generator = NumberGens.bigDecimalGen(range);
+      Generator<BigDecimal> generator = JavaMaths.bigDecimalGen(range);
       assertProperty(generator, value -> Assert.assertTrue(range.contains(value)));
     });
   }
@@ -114,12 +116,12 @@ public class NumberGens_UT {
 
   @Test
   public void bigIntegerGenShouldThrowIfGivenNullRange() {
-    Assertions.assertThrow(() -> NumberGens.bigIntegerGen(null));
+    Assertions.assertThrow(() -> JavaMaths.bigIntegerGen(null));
   }
 
   @Test
   public void bigDecimalGenShouldThrowIfGivenNullRange() {
-    Assertions.assertThrow(() -> NumberGens.bigDecimalGen(null));
+    Assertions.assertThrow(() -> JavaMaths.bigDecimalGen(null));
   }
 
   private static Stream<IntRange> integerRanges() {
@@ -223,29 +225,11 @@ public class NumberGens_UT {
   }
 
   private static Stream<Generator<BigInteger>> bigIntegerGens() {
-    return bigIntegerRanges().map(NumberGens::bigIntegerGen);
+    return bigIntegerRanges().map(JavaMaths::bigIntegerGen);
   }
 
   private static Stream<Generator<BigDecimal>> bigDecimalGens() {
-    return bigDecimalRanges().map(NumberGens::bigDecimalGen);
+    return bigDecimalRanges().map(JavaMaths::bigDecimalGen);
   }
 
-  private static <T> void assertNotNull(Generator<T> generator) {
-    assertProperty(generator, Assert::assertNotNull);
-  }
-
-  private static <T> void assertNotNull(Stream<Generator<T>> generators) {
-    generators.forEach(NumberGens_UT::assertNotNull);
-  }
-
-  private static <T> void assertProperty(Stream<Generator<T>> generators, Consumer<T> checker) {
-    generators.forEach(gen -> assertProperty(gen, checker));
-  }
-
-  private static <T> void assertProperty(Generator<T> generator, Consumer<T> checker) {
-    Random random = new Random(SEED);
-    for (int i = 0; i < NB_SAMPLES; i++) {
-      checker.accept(generator.get(random));
-    }
-  }
 }
