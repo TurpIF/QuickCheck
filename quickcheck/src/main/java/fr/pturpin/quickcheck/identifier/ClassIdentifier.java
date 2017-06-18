@@ -1,12 +1,12 @@
 package fr.pturpin.quickcheck.identifier;
 
-import com.google.common.collect.ImmutableList;
-
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 final class ClassIdentifier<T> implements TypeIdentifier<T> {
   private final Class<T> klass;
@@ -27,7 +27,9 @@ final class ClassIdentifier<T> implements TypeIdentifier<T> {
 
   @Override
   public Optional<List<TypeIdentifier<?>>> getParametrizedType() {
-    return getNbParametrizedType() == 0 ? Optional.of(ImmutableList.of()) : Optional.empty();
+    return Optional.of(Arrays.stream(klass.getTypeParameters())
+        .map(Identifiers::wildcardId)
+        .collect(toImmutableList()));
   }
 
   @Override

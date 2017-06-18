@@ -14,7 +14,7 @@ public interface TypeIdentifier<T> {
 
   static String idToString(TypeIdentifier<?> id) {
     return id.getTypeClass().getSimpleName() + id.getParametrizedType()
-        .map(parameters -> parameters.stream()
+        .map(parameters -> parameters.isEmpty() ? "" : parameters.stream()
             .map(Object::toString)
             .collect(Collectors.joining(", ", "<", ">")))
         .orElseGet(() -> id.getNbParametrizedType() == 0 ? "" : IntStream.range(0, id.getNbParametrizedType())

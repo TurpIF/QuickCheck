@@ -13,6 +13,8 @@ import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -189,16 +191,32 @@ public final class Identifiers {
    * @return replaced identifier
    */
   public static TypeIdentifier<?> replace(Map<? extends TypeIdentifier<?>, ? extends TypeIdentifier<?>> replaceMap, TypeIdentifier<?> id) {
-    if (replaceMap.containsKey(id)) {
-      return replaceMap.get(id);
-    }
-    if (!id.getParametrizedType().isPresent()) {
-      return id;
-    }
-    List<TypeIdentifier<?>> replacedSubIds = id.getParametrizedType().get().stream()
-        .map(subId -> replace(replaceMap, subId))
-        .collect(toImmutableList());
-    return paramId(classId((Class) id.getTypeClass()), replacedSubIds);
+    return replace(k -> Optional.ofNullable(replaceMap.get(k)), id);
+  }
+
+  /**
+   * In the given identifier tree, replace the element using the given function.
+   * If function return an empty, the tree element remained the same, else it's replaced by the returned value.
+   *
+   * <br/>
+   * For instance, given the function mapping @{code [String -> Double]} and the identifier of @{code Map<String, Integer>},
+   * the result should be {@code Map<Double, Integer>}
+   * <br/>
+   * The given instance is not mutated. A new independent instance is returned
+   *
+   * @param replaceF replacing function
+   * @param id identifier to replace in
+   * @return replaced identifier
+   */
+  public static TypeIdentifier<?> replace(Function<TypeIdentifier<?>, Optional<TypeIdentifier<?>>> replaceF, TypeIdentifier<?> id) {
+    return replaceF.apply(id).orElseGet(() -> {
+      Optional<TypeIdentifier> replacedId = id.getParametrizedType()
+          .map(subIds -> subIds.stream()
+              .map(subId -> replace(replaceF, subId))
+              .collect(toImmutableList()))
+          .map(subIds -> paramId(classId((Class) id.getTypeClass()), (List) subIds));
+      return replacedId.orElse(id);
+    });
   }
 
   /**
