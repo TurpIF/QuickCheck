@@ -95,7 +95,7 @@ public final class Registries {
    * @param klass class to inspect
    * @return registry of generator methods in the class
    * @throws NullPointerException if class is null
-   * @throws RuntimeException if more than one method yield generators for the same type identifier
+   * @throws IllegalArgumentException if more than one method yield generators for the same type identifier
    */
   public static Registry forClass(Class<?> klass) {
     RegistryBuilder builder = builder();
