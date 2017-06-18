@@ -26,10 +26,6 @@ class ParametrizedIdentifier<T> implements TypeIdentifier<T> {
     return ownerIdentifier.getTypeClass();
   }
 
-  public TypeIdentifier<T> getOwnerIdentifier() {
-    return ownerIdentifier;
-  }
-
   @Override
   public int getNbParametrizedType() {
     return parameters.size();
@@ -56,5 +52,10 @@ class ParametrizedIdentifier<T> implements TypeIdentifier<T> {
   @Override
   public int hashCode() {
     return Objects.hash(ownerIdentifier, parameters);
+  }
+
+  @Override
+  public String toString() {
+    return TypeIdentifier.idToString(this);
   }
 }
